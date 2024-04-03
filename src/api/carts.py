@@ -5,9 +5,6 @@ from enum import Enum
 import sqlalchemy
 from src import database as db
 
-with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text(sql_to_execute))
-
 router = APIRouter(
     prefix="/carts",
     tags=["cart"],
@@ -108,7 +105,14 @@ class CartCheckout(BaseModel):
     payment: str
 
 @router.post("/{cart_id}/checkout")
-def checkout(cart_id: int, cart_checkout: CartCheckout):
-    """ """
+def checkout(cart_id: int):
+    # Placeholder for checkout logic
+    sql_to_execute = "SELECT num_green_potions, gold FROM global_inventory WHERE id = 1;"
+    with db.engine.begin() as connection:
+        inventory_info = connection.execute(sqlalchemy.text(sql_to_execute)).fetchone()
 
-    return {"total_potions_bought": 1, "total_gold_paid": 50}
+    if inventory_info['num_green_potions'] >= requested_potion_quantity:
+        # Proceed with the transaction
+        # Update inventory and gold accordingly
+
+    return {"total_potions_bought": purchased_quantity, "total_gold_paid": total_cost}
