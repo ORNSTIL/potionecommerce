@@ -4,6 +4,9 @@ from src.api import auth
 import sqlalchemy
 from src import database as db
 
+with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text(sql_to_execute))
+
 router = APIRouter(
     prefix="/barrels",
     tags=["barrels"],
