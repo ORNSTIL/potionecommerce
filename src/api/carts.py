@@ -105,14 +105,40 @@ class CartCheckout(BaseModel):
     payment: str
 
 @router.post("/{cart_id}/checkout")
-def checkout(cart_id: int):
-    # Placeholder for checkout logic
+def checkout(cart_id: int, requested_potion_quantity: int):
+    # Placeholder for the price of a green potion
+    potion_price = 10
+
+    # Fetch current inventory and gold
     sql_to_execute = "SELECT num_green_potions, gold FROM global_inventory WHERE id = 1;"
     with db.engine.begin() as connection:
         inventory_info = connection.execute(sqlalchemy.text(sql_to_execute)).fetchone()
 
+    # Check if enough potions are available for the requested quantity
     if inventory_info['num_green_potions'] >= requested_potion_quantity:
-        # Proceed with the transaction
-        # Update inventory and gold accordingly
-
-    return {"total_potions_bought": purchased_quantity, "total_gold_paid": total_cost}
+        # Calculate the total cost of the requested potions
+        total_cost = requested_potion_quantity * potion_price
+        
+        # Ensure the shop has enough gold to proceed with the transaction
+        # This step might be adjusted based on whether you're buying or selling
+        if inventory_info['gold'] >= total_cost:
+            # Update inventory: reduce the number of potions and adjust the gold
+            new_potion_count = inventory_info['num_green_potions'] - requested_potion_quantity
+            new_gold_amount = inventory_info['gold'] + total_cost  # Adjust this line based on the transaction direction
+            
+            # Execute the update
+            update_inventory_sql = f"""
+            UPDATE global_inventory 
+            SET num_green_potions = {new_potion_count}, gold = {new_gold_amount} 
+            WHERE id = 1;
+            """
+            connection.execute(sqlalchemy.text(update_inventory_sql))
+            
+            # Assuming transaction success
+            return {"message": "Transaction successful", "total_potions_sold": requested_potion_quantity, "total_gold_earned": total_cost}
+        else:
+            # Not enough gold to proceed with the transaction
+            return {"message": "Not enough gold for this transaction"}
+    else:
+        # Not enough potions available
+        return {"message": "Not enough potions available for the requested quantity"}
