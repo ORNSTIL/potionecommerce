@@ -22,37 +22,18 @@ class Barrel(BaseModel):
 @router.post("/deliver/{order_id}")
 def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     for barrel in barrels_delivered:
-        if barrel.potion_type == [0, 100, 0]:  # Assuming this identifies green potions
-            # Calculate the total ml delivered
-            total_ml_delivered = barrel.ml_per_barrel * barrel.quantity
-
-            # Update the inventory
-            sql_to_execute = """
-            UPDATE global_inventory
-            SET num_green_ml = num_green_ml + :total_ml_delivered
-            WHERE id = 1;
-            """
+        if barrel.potion_type == [0, 100, 0, 0]:  # green potion type
             with db.engine.begin() as connection:
-                connection.execute(sqlalchemy.text(sql_to_execute), {"total_ml_delivered": total_ml_delivered})
+                connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_ml = num_green_ml + :ml WHERE id = 1"),
+                                   ml=barrel.ml_per_barrel * barrel.quantity)
+    return "OK"
 
-    return {"message": f"Delivered barrels for order {order_id}"}
-
-
-# Gets called once a day
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
-    # Fetch the current gold amount from the database to decide what we can afford
-    sql_to_execute = "SELECT gold FROM global_inventory WHERE id = 1;"
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text(sql_to_execute))
-        current_gold = result.scalar()
-
-    # Determine what can be bought from the wholesale catalog
-    purchase_plan = []
-    for barrel in wholesale_catalog:
-        if barrel.price <= current_gold and barrel.quantity > 0 and barrel.potion_type == [0, 100, 0]:  # Assuming green potion type
-            # Add to purchase plan; do not purchase here, just plan
-            purchase_plan.append({"sku": barrel.sku, "quantity": 1})
-            break
-
-    return purchase_plan
+        inventory_info = connection.execute(sqlalchemy.text("SELECT gold, num_green_potions FROM global_inventory WHERE id = 1")).fetchone()
+        if inventory_info['num_green_potions'] < 10:
+            for barrel in wholesale_catalog:
+                if barrel.potion_type == [0, 100, 0, 0] and inventory_info['gold'] >= barrel.price:  # green potions only
+                    return [{"sku": barrel.sku, "quantity": 1}]
+    return []
