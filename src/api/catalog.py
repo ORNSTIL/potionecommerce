@@ -7,6 +7,7 @@ router = APIRouter()
 
 @router.get("/catalog/", tags=["catalog"])
 def get_catalog():
+    potion_price = 10
     sql_to_execute = "SELECT num_green_potions, gold FROM global_inventory WHERE id = 1;"
     with db.engine.begin() as connection:
         inventory_info = connection.execute(sqlalchemy.text(sql_to_execute)).fetchone()
