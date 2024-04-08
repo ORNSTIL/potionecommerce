@@ -37,7 +37,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
     purchase_plan = []
     if current_potions < 10:
-        # Logic to determine the purchase plan for new barrels
         purchase_plan.append({"sku": "SMALL_GREEN_BARREL", "quantity": 1})
     
     return purchase_plan
