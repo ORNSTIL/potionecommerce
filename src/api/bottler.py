@@ -17,41 +17,42 @@ class PotionInventory(BaseModel):
 
 @router.post("/deliver/{order_id}")
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
-    """ """
-    print(f"potions delievered: {potions_delivered} order_id: {order_id}")
+    for potion_inventory in potions_delivered:
+        if potion_inventory.potion_type == [0, 100, 0]:  # Green potion logic
+            # Update database with delivered potion quantities
+            sql_to_execute = """
+            UPDATE global_inventory
+            SET num_green_ml = num_green_ml + :delivered_ml
+            WHERE id = 1;
+            """
+            ml_delivered = potion_inventory.quantity * 50  # Assuming 50 ml per potion quantity for simplicity
+            with db.engine.begin() as connection:
+                connection.execute(sqlalchemy.text(sql_to_execute), {"delivered_ml": ml_delivered})
+                
+    return {"message": f"Delivered potions for order {order_id}"}
 
-    return "OK"
 
 @router.post("/plan")
 def get_bottle_plan():
     """
-    Logic to calculate the number of green potions that can be produced
-    from the available green ml and update the inventory.
+    Calculate the potential number of green potions that can be produced
+    from the available green ml without updating the inventory.
     """
 
-    ml_per_potion = 50
+    ml_per_potion = 50 
     
     with db.engine.begin() as connection:
         # Fetch the current state of the inventory
-        fetch_inventory_sql = "SELECT num_green_ml, num_green_potions FROM global_inventory WHERE id = 1;"
+        fetch_inventory_sql = "SELECT num_green_ml FROM global_inventory WHERE id = 1;"
         inventory_result = connection.execute(sqlalchemy.text(fetch_inventory_sql))
-        inventory = inventory_result.fetchone()
-        green_ml_available, current_green_potions = inventory['num_green_ml'], inventory['num_green_potions']
+        green_ml_available = inventory_result.scalar()
 
-        # Calculate the number of new potions that can be produced
-        new_potions = green_ml_available // ml_per_potion
+        # Calculate the number of new potions that could be produced
+        potential_new_potions = green_ml_available // ml_per_potion
 
-        # Update inventory with new potion count and remaining ml
-        new_ml_amount = green_ml_available % ml_per_potion  # Remainder ml after potion production
-        new_potion_count = current_green_potions + new_potions
-        update_inventory_sql = """
-            UPDATE global_inventory
-            SET num_green_ml = :new_ml, num_green_potions = :new_potions
-            WHERE id = 1;
-        """
-        connection.execute(sqlalchemy.text(update_inventory_sql), {"new_ml": new_ml_amount, "new_potions": new_potion_count})
+    # Return a plan indicating the number of potions that could potentially be produced
+    return [{"potion_type": [0, 100, 0], "potential_quantity": potential_new_potions}]
 
-    return [{"potion_type": [0, 100, 0], "quantity": new_potions}]
 
 
 if __name__ == "__main__":
