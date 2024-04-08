@@ -29,8 +29,7 @@ def get_bottle_plan():
     from the available green ml and update the inventory.
     """
 
-    # Constants
-    ml_per_potion = 50  # Assume each potion requires 50 ml to produce
+    ml_per_potion = 50
     
     with db.engine.begin() as connection:
         # Fetch the current state of the inventory
