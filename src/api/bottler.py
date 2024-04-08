@@ -25,22 +25,35 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
 @router.post("/plan")
 def get_bottle_plan():
     """
-    Go from barrel to bottle.
+    Logic to calculate the number of green potions that can be produced
+    from the available green ml and update the inventory.
     """
 
-    # Each bottle has a quantity of what proportion of red, blue, and
-    # green potion to add.
-    # Expressed in integers from 1 to 100 that must sum up to 100.
-
-    sql_to_execute = "SELECT num_green_ml FROM global_inventory WHERE id = 1;"
+    # Constants
+    ml_per_potion = 50  # Assume each potion requires 50 ml to produce
+    
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text(sql_to_execute))
-        green_ml_available = result.scalar()
+        # Fetch the current state of the inventory
+        fetch_inventory_sql = "SELECT num_green_ml, num_green_potions FROM global_inventory WHERE id = 1;"
+        inventory_result = connection.execute(sqlalchemy.text(fetch_inventory_sql))
+        inventory = inventory_result.fetchone()
+        green_ml_available, current_green_potions = inventory['num_green_ml'], inventory['num_green_potions']
 
-    # Logic to calculate the number of potions you can produce
-    # from green_ml_available and update the inventory
+        # Calculate the number of new potions that can be produced
+        new_potions = green_ml_available // ml_per_potion
 
-    return [{"potion_type": [0, 100, 0], "quantity": calculated_quantity}]
+        # Update inventory with new potion count and remaining ml
+        new_ml_amount = green_ml_available % ml_per_potion  # Remainder ml after potion production
+        new_potion_count = current_green_potions + new_potions
+        update_inventory_sql = """
+            UPDATE global_inventory
+            SET num_green_ml = :new_ml, num_green_potions = :new_potions
+            WHERE id = 1;
+        """
+        connection.execute(sqlalchemy.text(update_inventory_sql), {"new_ml": new_ml_amount, "new_potions": new_potion_count})
+
+    return [{"potion_type": [0, 100, 0], "quantity": new_potions}]
+
 
 if __name__ == "__main__":
     print(get_bottle_plan())
