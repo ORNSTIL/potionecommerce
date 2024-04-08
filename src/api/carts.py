@@ -106,7 +106,6 @@ class CartCheckout(BaseModel):
 
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, requested_potion_quantity: int):
-    # Placeholder for the price of a green potion
     potion_price = 10
 
     # Fetch current inventory and gold
@@ -120,11 +119,10 @@ def checkout(cart_id: int, requested_potion_quantity: int):
         total_cost = requested_potion_quantity * potion_price
         
         # Ensure the shop has enough gold to proceed with the transaction
-        # This step might be adjusted based on whether you're buying or selling
         if inventory_info['gold'] >= total_cost:
             # Update inventory: reduce the number of potions and adjust the gold
             new_potion_count = inventory_info['num_green_potions'] - requested_potion_quantity
-            new_gold_amount = inventory_info['gold'] + total_cost  # Adjust this line based on the transaction direction
+            new_gold_amount = inventory_info['gold'] + total_cost 
             
             # Execute the update
             update_inventory_sql = f"""
