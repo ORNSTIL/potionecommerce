@@ -114,15 +114,15 @@ def checkout(cart_id: int, requested_potion_quantity: int):
         inventory_info = connection.execute(sqlalchemy.text(sql_to_execute)).fetchone()
 
     # Check if enough potions are available for the requested quantity
-    if inventory_info['num_green_potions'] >= requested_potion_quantity:
+    if inventory_info[0] >= requested_potion_quantity:
         # Calculate the total cost of the requested potions
         total_cost = requested_potion_quantity * potion_price
         
         # Ensure the shop has enough gold to proceed with the transaction
-        if inventory_info['gold'] >= total_cost:
+        if inventory_info[3] >= total_cost:
             # Update inventory: reduce the number of potions and adjust the gold
-            new_potion_count = inventory_info['num_green_potions'] - requested_potion_quantity
-            new_gold_amount = inventory_info['gold'] + total_cost 
+            new_potion_count = inventory_info[0] - requested_potion_quantity
+            new_gold_amount = inventory_info[3] + total_cost 
             
             # Execute the update
             update_inventory_sql = f"""
