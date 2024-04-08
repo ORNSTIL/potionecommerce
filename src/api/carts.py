@@ -106,7 +106,7 @@ class CartCheckout(BaseModel):
 
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, requested_potion_quantity: int):
-    potion_price = 10
+    potion_price = 40
 
     # Fetch current inventory and gold
     sql_to_execute = "SELECT num_green_potions, gold FROM global_inventory WHERE id = 1;"
