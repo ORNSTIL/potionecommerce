@@ -32,8 +32,8 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     with db.engine.begin() as connection:
         inventory_info = connection.execute(sqlalchemy.text("SELECT gold, num_green_potions FROM global_inventory WHERE id = 1")).fetchone()
-        if inventory_info[0] < 10:
+        if inventory_info[1] < 10:
             for barrel in wholesale_catalog:
-                if barrel.potion_type == [0, 100, 0, 0] and inventory_info[3] >= barrel.price:  # green potions only
+                if barrel.potion_type == [0, 100, 0, 0] and inventory_info[0] >= barrel.price:  # green potions only
                     return [{"sku": barrel.sku, "quantity": 1}]
     return []
