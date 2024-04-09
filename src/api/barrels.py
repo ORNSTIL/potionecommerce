@@ -39,16 +39,24 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     plan_to_buy = []
     with db.engine.begin() as connection:
-        gold, capacity = connection.execute(sqlalchemy.text("""
-            SELECT gold, (max_capacity - current_capacity) as available_capacity
-            FROM global_inventory, (SELECT SUM(ml_per_barrel * quantity) as current_capacity FROM potion_catalog_items) as derived
-            WHERE id = 1
+        # Assuming 'gold' and 'num_green_ml' are available in 'global_inventory'
+        inventory_info = connection.execute(sqlalchemy.text("""
+            SELECT gold, num_green_ml FROM global_inventory WHERE id = 1
         """)).fetchone()
+        gold, num_green_ml = inventory_info
+
+        # Decision to buy based on gold and whether we need more ml
+        # This example assumes each green barrel costs 100 gold and adds 1000 ml.
+        # Adjust numbers based on your game's logic.
+        needed_ml = 1000 - num_green_ml  # Assuming you want to keep at least 1000 ml in stock.
+        barrels_needed = needed_ml // 1000  # Assuming each barrel adds 1000 ml.
+        barrel_cost = 100  # Assuming each barrel costs 100 gold.
 
         for barrel in wholesale_catalog:
-            if barrel.sku == "SMALL_GREEN_BARREL" and gold >= barrel.price * 2 and capacity >= barrel.ml_per_barrel * 2:
-                plan_to_buy.append({"sku": barrel.sku, "quantity": 2})
-                break  
+            if barrel.sku == "SMALL_GREEN_BARREL" and gold >= barrel_cost * barrels_needed:
+                plan_to_buy.append({"sku": barrel.sku, "quantity": barrels_needed})
+                break  # Assuming you stop after finding the barrels you can afford.
 
     return plan_to_buy
+
 
