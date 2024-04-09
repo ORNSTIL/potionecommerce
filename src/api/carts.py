@@ -105,38 +105,28 @@ class CartCheckout(BaseModel):
     payment: str
 
 @router.post("/{cart_id}/checkout")
-def checkout(cart_id: int, requested_potion_quantity: int):
-    potion_price = 40
+def checkout(cart_id: int):
+    potion_price = 40  # Assuming a fixed price per potion
 
-    # Fetch current inventory and gold
-    sql_to_execute = "SELECT num_green_potions, gold FROM global_inventory WHERE id = 1;"
     with db.engine.begin() as connection:
-        inventory_info = connection.execute(sqlalchemy.text(sql_to_execute)).fetchone()
+        inventory_info = connection.execute(
+            sqlalchemy.text("SELECT num_green_potions, gold FROM global_inventory WHERE id = 1")
+        ).fetchone()
 
-    # Check if enough potions are available for the requested quantity
-    if inventory_info[0] >= requested_potion_quantity:
-        # Calculate the total cost of the requested potions
-        total_cost = requested_potion_quantity * potion_price
-        
-        # Ensure the shop has enough gold to proceed with the transaction
-        if inventory_info[1] >= total_cost:
-            # Update inventory: reduce the number of potions and adjust the gold
-            new_potion_count = inventory_info[0] - requested_potion_quantity
-            new_gold_amount = inventory_info[1] + total_cost 
-            
-            # Execute the update
-            update_inventory_sql = f"""
-            UPDATE global_inventory 
-            SET num_green_potions = {new_potion_count}, gold = {new_gold_amount} 
-            WHERE id = 1;
-            """
-            connection.execute(sqlalchemy.text(update_inventory_sql))
-            
-            # Assuming transaction success
-            return {"message": "Transaction successful", "total_potions_sold": requested_potion_quantity, "total_gold_earned": total_cost}
+        if inventory_info.num_green_potions > 0:
+            # Proceed with the sale of exactly one potion
+            new_potion_count = inventory_info.num_green_potions - 1
+            new_gold_amount = inventory_info.gold + potion_price
+
+            connection.execute(
+                sqlalchemy.text("""
+                    UPDATE global_inventory 
+                    SET num_green_potions = :new_count, gold = :new_gold 
+                    WHERE id = 1;
+                """), 
+                {"new_count": new_potion_count, "new_gold": new_gold_amount}
+            )
+
+            return {"message": "Transaction successful", "total_potions_sold": 1, "total_gold_earned": potion_price}
         else:
-            # Not enough gold to proceed with the transaction
-            return {"message": "Not enough gold for this transaction"}
-    else:
-        # Not enough potions available
-        return {"message": "Not enough potions available for the requested quantity"}
+            return {"message": "Not enough potions available for the sale"}
