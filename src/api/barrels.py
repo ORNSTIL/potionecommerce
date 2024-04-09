@@ -48,7 +48,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         for barrel in wholesale_catalog:
             if barrel.sku == "SMALL_GREEN_BARREL" and gold >= barrel.price * 2 and capacity >= barrel.ml_per_barrel * 2:
                 plan_to_buy.append({"sku": barrel.sku, "quantity": 2})
-                break  # Assuming you only buy up to two barrels if you have the resources
+                break  
 
     return plan_to_buy
 
