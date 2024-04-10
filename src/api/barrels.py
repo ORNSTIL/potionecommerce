@@ -45,7 +45,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     
     connection.commit()
 
-return "OK"
+    return "OK"
 
 
 
