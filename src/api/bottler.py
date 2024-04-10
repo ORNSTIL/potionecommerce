@@ -19,7 +19,7 @@ class PotionInventory(BaseModel):
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
     print(f"potions delievered: {potions_delivered} order_id: {order_id}")
     
-     with db.engine.begin() as connection:
+    with db.engine.begin() as connection:
         num_green = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar_one()
         green_ml = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar_one()
         
