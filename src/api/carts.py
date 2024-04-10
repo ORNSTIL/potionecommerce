@@ -110,7 +110,7 @@ def checkout(cart_id: int):
 
     with db.engine.begin() as connection:
         inventory_info = connection.execute(
-            sqlalchemy.text("SELECT num_green_potions, gold FROM global_inventory WHERE id = 1")
+            sqlalchemy.text("SELECT num_green_potions, gold FROM global_inventory")
         ).fetchone()
 
         if inventory_info.num_green_potions > 0:
@@ -121,8 +121,7 @@ def checkout(cart_id: int):
             connection.execute(
                 sqlalchemy.text("""
                     UPDATE global_inventory 
-                    SET num_green_potions = :new_count, gold = :new_gold 
-                    WHERE id = 1;
+                    SET num_green_potions = :new_count, gold = :new_gold;
                 """), 
                 {"new_count": new_potion_count, "new_gold": new_gold_amount}
             )
