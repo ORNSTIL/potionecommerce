@@ -48,7 +48,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 if barrel.potion_type == [0, 100, 0, 0]:  # Identifying green potion barrels by potion_type
                     plan_to_buy.append({"sku": barrel.sku, "quantity": 1})
                     break 
-
+    print(wholesale_catalog)
     return plan_to_buy
 
 
