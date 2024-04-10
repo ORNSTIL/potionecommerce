@@ -26,7 +26,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     total_ml_added = 0
     total_cost = 0
 
-     with db.engine.begin() as connection:
+    with db.engine.begin() as connection:
         num_green_ml = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
 
     total_ml_added = num_green_ml
