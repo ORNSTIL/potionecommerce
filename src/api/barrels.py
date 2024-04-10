@@ -21,18 +21,25 @@ class Barrel(BaseModel):
 
 @router.post("/deliver/{order_id}")
 def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
+    print(f"barrels delievered: {barrels_delivered} order_id: {order_id}")
+
     total_ml_added = 0
     total_cost = 0
+
+     with db.engine.begin() as connection:
+        num_green_ml = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar()
+
+    total_ml_added = num_green_ml
     for barrel in barrels_delivered:
         if barrel.potion_type == [0, 100, 0, 0]:  # Assuming a way to identify green potion barrels
-            total_ml_added += barrel.ml_per_barrel * barrel.quantity
-            total_cost += barrel.price * barrel.quantity  # Assuming price is per barrel
+            total_ml_added += barrel.ml_per_barrel
+            total_cost += barrel.price
 
-    with db.engine.begin() as connection:
-        connection.execute(sqlalchemy.text("""
-            UPDATE global_inventory SET num_green_ml = num_green_ml + :ml, gold = gold - :cost WHERE id = 1
-        """), ml=total_ml_added, cost=total_cost)
-    return "OK"
+   
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = {num_green_ml} "))
+        gold_amount = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar() - total_cost
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {gold_amount} "))
+
 
 
 @router.post("/plan")
@@ -43,11 +50,17 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             SELECT num_green_potions FROM global_inventory WHERE id = 1
         """)).scalar()
 
-        if num_green_potions < 10:
-            for barrel in wholesale_catalog:
-                if barrel.potion_type == [0, 100, 0, 0]:  # Identifying green potion barrels by potion_type
+        gold_amount = connection.execute(sqlalchemy.text("""
+            SELECT gold FROM global_inventory WHERE id = 1
+        """)).scalar()
+
+        for barrel in wholesale_catalog:
+            if barrel.potion_type == [0, 100, 0, 0]:  # Identifying green potion barrels by potion_type
+                if num_green_potions < 10 and gold >= barrel.price:    
                     plan_to_buy.append({"sku": barrel.sku, "quantity": 1})
                     break 
+                
+                
     print(wholesale_catalog)
     return plan_to_buy
 
