@@ -24,7 +24,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
         green_ml = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar_one()
         
         for potion in potions_delivered:
-            if potion.potion_type == [0, 100, 0, 0]:
+            if potion.potion_type == [0, 100, 0, 0] or barrel.potion_type == [0, 1, 0, 0]:
                 num_green += potion.quantity
                 green_ml -= potion.quantity*100
                 break
@@ -54,7 +54,7 @@ def get_bottle_plan():
 
     if num_green_potions >= 1:
         order.append({
-            "potion_type": [0, 100, 0, 0],
+            "potion_type": [0, 1, 0, 0],
             "quantity": num_green_potions,
         })
 
