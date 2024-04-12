@@ -59,7 +59,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
         for barrel in wholesale_catalog:
             if barrel.potion_type == [0, 100, 0, 0]:
-                if num_green_potions < 10 and gold > barrel.price: 
+                if num_green_potions < 10 and gold >= barrel.price: 
                     gold_amount = gold_amount - barrel.price
                     plan_to_buy.append({
                         "sku": barrel.sku, 
