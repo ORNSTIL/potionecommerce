@@ -32,7 +32,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 
     total_ml_added = num_green_ml
     for barrel in barrels_delivered:
-        if barrel.potion_type == [0, 100, 0, 0] or barrel.potion_type == [0, 1, 0, 0]:
+        if barrel.potion_type == [0, 1, 0, 0]:
             total_ml_added = barrel.ml_per_barrel * barrel.quantity
             total_cost = gold - (barrel.price * barrel.quantity)
             
@@ -58,7 +58,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         gold_amount = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar_one()
 
         for barrel in wholesale_catalog:
-            if barrel.potion_type == [0, 100, 0, 0] or barrel.potion_type == [0, 1, 0, 0]:
+            if barrel.potion_type == [0, 1, 0, 0]:
                 if num_green_potions < 10 and gold_amount >= barrel.price: 
                     gold_amount = gold_amount - barrel.price
                     plan_to_buy.append({
