@@ -51,7 +51,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
-    plan_to_buy = []
+    print(wholesale_catalog) 
     with db.engine.begin() as connection:
         num_green_potions = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar_one()
 
@@ -59,13 +59,13 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
         for barrel in wholesale_catalog:
             if barrel.potion_type == [0, 1, 0, 0]:
-                if num_green_potions < 10 and gold_amount >= barrel.price: 
-                    gold_amount = gold_amount - barrel.price
-                    plan_to_buy.append({
+                if ((num_green_potions < 10) and (gold_amount >= barrel.price:)) 
+                    return [{
                         "sku": barrel.sku, 
-                        "quantity": 1})
-    print(wholesale_catalog)           
-    return plan_to_buy
+                        "quantity": 1
+                }]
+              
+    return []
 
 
 
