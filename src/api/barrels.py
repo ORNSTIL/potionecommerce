@@ -31,8 +31,8 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     total_ml_added = num_green_ml
     for barrel in barrels_delivered:
         if barrel.potion_type == [0, 1, 0, 0]:
-            total_ml_added = barrel.ml_per_barrel * barrel.quantity
-            total_cost = gold_amount - (barrel.price * barrel.quantity)
+            num_green_ml = num_green_ml + (barrel.ml_per_barrel * barrel.quantity)
+            gold_amount = gold_amount - (barrel.price * barrel.quantity)
             
 
     connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_ml = :green_ml"),
