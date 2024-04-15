@@ -26,6 +26,8 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 
     with db.engine.begin() as connection:
         num_green_ml = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar_one()
+        num_red_ml = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory")).scalar_one()
+        num_blue_ml = connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory")).scalar_one()
         gold_amount = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar_one()
 
     total_ml_added = num_green_ml
@@ -33,10 +35,24 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
         if barrel.potion_type == [0, 1, 0, 0]:
             num_green_ml = num_green_ml + (barrel.ml_per_barrel * barrel.quantity)
             gold_amount = gold_amount - (barrel.price * barrel.quantity)
+        elif barrel.potion_type == [1, 0, 0, 0]:
+            num_red_ml = num_red_ml + (barrel.ml_per_barrel * barrel.quantity)
+            gold_amount = gold_amount - (barrel.price * barrel.quantity)
+        elif barrel.potion_type == [0, 0, 1, 0]:
+            num_blue_ml = num_blue_ml + (barrel.ml_per_barrel * barrel.quantity)
+            gold_amount = gold_amount - (barrel.price * barrel.quantity)
+        else:
+            continue
             
     with db.engine.begin() as connection:
         connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_ml = :green_ml"),
             {"green_ml": num_green_ml})
+
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = :red_ml"),
+            {"red_ml": num_red_ml})
+
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_blue_ml = :blue_ml"),
+            {"blue_ml": num_blue_ml})
             
         connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = :gold"),
             {"gold": gold_amount})
@@ -52,16 +68,35 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     print(wholesale_catalog) 
     with db.engine.begin() as connection:
         num_green_potions = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar_one()
+        num_red_potions = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory")).scalar_one()
+        num_blue_potions = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory")).scalar_one()
 
         gold_amount = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).scalar_one()
 
         for barrel in wholesale_catalog:
             if barrel.potion_type == [0, 1, 0, 0]:
                 if ((num_green_potions < 10) and (gold_amount >= barrel.price)): 
+                    gold_amount = gold_amount - barrel.price
                     return [{
                         "sku": barrel.sku, 
                         "quantity": 1
                 }]
+            elif barrel.potion_type == [1, 0, 0, 0]:
+                if ((num_red_potions < 10) and (gold_amount >= barrel.price)): 
+                    gold_amount = gold_amount - barrel.price
+                    return [{
+                        "sku": barrel.sku, 
+                        "quantity": 1
+                }]
+            elif barrel.potion_type == [0, 0, 1, 0]:
+                if ((num_blue_potions < 10) and (gold_amount >= barrel.price)): 
+                    gold_amount = gold_amount - barrel.price
+                    return [{
+                        "sku": barrel.sku, 
+                        "quantity": 1
+                }]
+            else:
+                continue
               
     return []
 
