@@ -114,8 +114,6 @@ class CartCheckout(BaseModel):
     payment: str
 
 @router.post("/{cart_id}/checkout")
-def checkout(cart_id: int):
-    @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
     quantity = 0
