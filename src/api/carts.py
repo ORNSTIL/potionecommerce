@@ -120,7 +120,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     total_gold = 0
 
     with db.engine.begin() as connection:
-        carts_get = connection.execute(sqlalchemy.text("SELECT * FROM cart_inventory WHERE cart_id = :cart_id), {"cart_id": cart_id})
+        carts_get = connection.execute(sqlalchemy.text("SELECT * FROM cart_inventory WHERE cart_id = :cart_id"), {"cart_id": cart_id})
         rows = [dict(row) for row in carts_get]
 
         for row in rows:
