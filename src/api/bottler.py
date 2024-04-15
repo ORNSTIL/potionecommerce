@@ -54,26 +54,30 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
 
 @router.post("/plan")
 def get_bottle_plan():
-    order_plan = []
-    num_green_potions = 0
 
     with db.engine.begin() as connection:
         num_green_ml = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory")).scalar_one()
+        num_red_ml = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory")).scalar_one()
+        num_blue_ml = connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory")).scalar_one()
 
-    while("true"):
-        if num_green_ml >= 100:
-            num_green_potions += 1
-            num_green_ml -= 100
-        else:
-            break
+    num_green_potions = num_green_ml//100
+    num_red_potions = num_red_ml//100
+    num_blue_potions = num_blue_ml//100
 
-    if num_green_potions >= 1:
-        order.append({
-            "potion_type": [0, 100, 0, 0],
-            "quantity": num_green_potions,
-        })
-
-    return order_plan
+    return [
+            {
+                "potion_type": [0, 100, 0, 0],
+                "quantity": num_green_potions,
+            },
+            {
+                "potion_type": [100, 0, 0, 0],
+                "quantity": num_red_potions,
+            },
+            {
+                "potion_type": [0, 0, 100, 0],
+                "quantity": num_blue_potions,
+            }
+        ]
 
 
 if __name__ == "__main__":
