@@ -64,10 +64,12 @@ def get_bottle_plan():
     num_red_potions = num_red_ml//100
     num_blue_potions = num_blue_ml//100
 
+    print([{"potion_type": [0, 100, 0, 0], "quantity": num_green_potions}, {"potion_type": [100, 0, 0, 0], "quantity": num_red_potions}, {"potion_type": [0, 0, 100, 0], "quantity": num_blue_potions}])
+
     return [
             {
                 "potion_type": [0, 100, 0, 0],
-                "quantity": num_green_potions,
+                "quantity": num_green_potions
             },
             {
                 "potion_type": [100, 0, 0, 0],
@@ -75,7 +77,7 @@ def get_bottle_plan():
             },
             {
                 "potion_type": [0, 0, 100, 0],
-                "quantity": num_blue_potions,
+                "quantity": num_blue_potions
             }
         ]
 
