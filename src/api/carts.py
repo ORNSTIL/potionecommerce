@@ -135,7 +135,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             if ("blue" in item_sku.lower()):
                 connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_blue_potions = num_blue_potions - {item_quantity}"))   
 
-            connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = gold + ({50 * item_quantity})"))
+            connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = gold + ({30 * item_quantity})"))
             
             quantity += item_quantity
             total_gold += 30 * item_quantity
