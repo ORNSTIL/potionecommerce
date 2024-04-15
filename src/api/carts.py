@@ -89,8 +89,13 @@ def post_visits(visit_id: int, customers: list[Customer]):
 @router.post("/")
 def create_cart(new_cart: Customer):
     """ """
-    cart_id_tracker = cart_id_tracker + 1
-    return {"cart_id": cart_id_tracker}
+
+    with db.engine.begin() as connection:
+        cart_id_fetch = connection.execute(sqlalchemy.text("INSERT INTO carts (customer_name, character_class, level) VALUES ('{new_cart.customer_name}', '{new_cart.character_class}', {new_cart.level}) RETURNING id"
+        cart_id = cart_id_fetch.fetchone()[0]
+    
+    print(f"cart_id: {cart_id} customer_name: {new_cart.customer_name} character_class: {new_cart.character_class} level: {new_cart.level}")
+    return {"cart_id": cart_id}
 
 
 class CartItem(BaseModel):
@@ -100,7 +105,8 @@ class CartItem(BaseModel):
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
-
+    with db.engine.begin() as connection:
+        connection.execute(sqlalchemy.text("INSERT INTO cart_inventory (cart_id, item_sku, quantity) VALUES ({cart_id}, '{item_sku}', {cart_item.quantity})"))
     return "OK"
 
 
