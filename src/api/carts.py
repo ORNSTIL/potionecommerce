@@ -5,6 +5,8 @@ from enum import Enum
 import sqlalchemy
 from src import database as db
 
+cart_id_tracker = 0
+
 router = APIRouter(
     prefix="/carts",
     tags=["cart"],
@@ -87,7 +89,8 @@ def post_visits(visit_id: int, customers: list[Customer]):
 @router.post("/")
 def create_cart(new_cart: Customer):
     """ """
-    return {"cart_id": 1}
+    cart_id_tracker = cart_id_tracker + 1
+    return {"cart_id": cart_id_tracker}
 
 
 class CartItem(BaseModel):
@@ -106,26 +109,4 @@ class CartCheckout(BaseModel):
 
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int):
-    potion_price = 40  # Assuming a fixed price per potion
-
-    with db.engine.begin() as connection:
-        inventory_info = connection.execute(
-            sqlalchemy.text("SELECT num_green_potions, gold FROM global_inventory")
-        ).fetchone()
-
-        if inventory_info.num_green_potions > 0:
-            # Proceed with the sale of exactly one potion
-            new_potion_count = inventory_info.num_green_potions - 1
-            new_gold_amount = inventory_info.gold + potion_price
-
-            connection.execute(
-                sqlalchemy.text("""
-                    UPDATE global_inventory 
-                    SET num_green_potions = :new_count, gold = :new_gold;
-                """), 
-                {"new_count": new_potion_count, "new_gold": new_gold_amount}
-            )
-
-            return {"message": "Transaction successful", "total_potions_sold": 1, "total_gold_earned": potion_price}
-        else:
-            return {"message": "Not enough potions available for the sale"}
+    return {"total_potions_bought": 1, "total_gold_paid": 50}
