@@ -102,6 +102,9 @@ def create_cart(new_cart: Customer):
     print(f"cart_id: {cart_id} customer_name: {new_cart.customer_name} character_class: {new_cart.character_class} level: {new_cart.level}")
     return {"cart_id": cart_id}
 
+class CartItem(BaseModel):
+    quantity: int
+
 
 def insert_cart_item(connection, cart_id, item_sku, quantity):
     sql = f"""
