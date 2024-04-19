@@ -5,35 +5,24 @@ from src import database as db
 router = APIRouter()
 
 
+def fetch_catalog_items(connection):
+    sql = "SELECT * FROM potion_catalog_items WHERE quantity > 0"
+    rows = connection.execute(sqlalchemy.text(sql)).fetchall()
+    catalog = []
+    for row in rows:
+        row = row._asdict()
+        catalog.append({
+            "sku": row["sku"],
+            "name": row["name"],
+            "quantity": row["quantity"],
+            "price": row["price"],
+            "potion_type": row["potion_type"],
+        })
+    return catalog
+
 @router.get("/catalog/", tags=["catalog"])
 def get_catalog():
     with db.engine.begin() as connection:
-        num_green_potions = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory")).scalar()
-        num_red_potions = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory")).scalar()
-        num_blue_potions = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory")).scalar()
-    if (num_green_potions > 1) or (num_red_potions > 1) or (num_blue_potions > 1):
-        return [
-            {
-                "sku": "GREEN_POTION_0",
-                "name": "green potion",
-                "quantity": num_green_potions,
-                "price": 30, 
-                "potion_type": [0, 100, 0, 0], 
-            },
-            {
-                "sku": "RED_POTION_0",
-                "name": "red potion",
-                "quantity": num_red_potions,
-                "price": 30, 
-                "potion_type": [100, 0, 0, 0], 
-            },
-            {
-                "sku": "BLUE_POTION_0",
-                "name": "blue potion",
-                "quantity": num_blue_potions,
-                "price": 30, 
-                "potion_type": [0, 0, 100, 0], 
-            }
-        ]
-    else:
-        return []
+        catalog = fetch_catalog_items(connection)
+    print(f"catalog: {catalog}")
+    return catalog
