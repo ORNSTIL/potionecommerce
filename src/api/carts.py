@@ -86,59 +86,56 @@ def post_visits(visit_id: int, customers: list[Customer]):
     return "OK"
 
 
+def insert_new_cart(connection, customer_name, character_class, level):
+    sql = f"""
+        INSERT INTO carts (customer_name, character_class, level)
+        VALUES ('{customer_name}', '{character_class}', {level})
+        RETURNING id
+    """
+    result = connection.execute(sqlalchemy.text(sql))
+    return result.fetchone()[0]
+
 @router.post("/")
 def create_cart(new_cart: Customer):
-    """ """
-
     with db.engine.begin() as connection:
-        cart_id_fetch = connection.execute(sqlalchemy.text("INSERT INTO carts (customer_name, character_class, level) VALUES ('{new_cart.customer_name}', '{new_cart.character_class}', {new_cart.level}) RETURNING id"))
-        cart_id = cart_id_fetch.fetchone()[0]
-    
+        cart_id = insert_new_cart(connection, new_cart.customer_name, new_cart.character_class, new_cart.level)
     print(f"cart_id: {cart_id} customer_name: {new_cart.customer_name} character_class: {new_cart.character_class} level: {new_cart.level}")
     return {"cart_id": cart_id}
 
 
-class CartItem(BaseModel):
-    quantity: int
-
+def insert_cart_item(connection, cart_id, item_sku, quantity):
+    sql = f"""
+        INSERT INTO cart_inventory (cart_id, item_sku, quantity)
+        VALUES ({cart_id}, '{item_sku}', {quantity})
+    """
+    connection.execute(sqlalchemy.text(sql))
 
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
-    """ """
     with db.engine.begin() as connection:
-        connection.execute(sqlalchemy.text("INSERT INTO cart_inventory (cart_id, item_sku, quantity) VALUES ({cart_id}, '{item_sku}', {cart_item.quantity})"))
+        insert_cart_item(connection, cart_id, item_sku, cart_item.quantity)
+    print(f"cart_id: {cart_id} item_sku: {item_sku} quantity: {cart_item.quantity}")
     return "OK"
-
 
 class CartCheckout(BaseModel):
     payment: str
 
-@router.post("/{cart_id}/checkout")
-def checkout(cart_id: int, cart_checkout: CartCheckout):
-    """ """
+def update_inventory_and_collect_payment(connection, cart_id):
     quantity = 0
     total_gold = 0
+    rows = connection.execute(sqlalchemy.text(f"SELECT * FROM cart_items WHERE cart_id = {cart_id}")).fetchall()
+    for row in rows:
+        row = row._asdict()
+        quantity += row["quantity"]
+        connection.execute(sqlalchemy.text(f"UPDATE potion_catalo SET quantity = quantity - {row['quantity']} WHERE sku = '{row['item_sku']}'"))
+        price = connection.execute(sqlalchemy.text(f"SELECT price FROM potion_catalog_items WHERE sku = '{row['item_sku']}'")).fetchone()[0]
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = gold + {price * row['quantity']}"))
+        total_gold += price * row["quantity"]
+    return quantity, total_gold
 
+@router.post("/{cart_id}/checkout")
+def checkout(cart_id: int, cart_checkout: CartCheckout):
     with db.engine.begin() as connection:
-        carts_get = connection.execute(sqlalchemy.text("SELECT * FROM cart_inventory WHERE cart_id = :cart_id"), {"cart_id": cart_id})
-        rows = [dict(row) for row in carts_get]
-
-        for row in rows:
-            item_sku = row['item_sku']
-            item_quantity = row['quantity']
-            if ("red" in item_sku.lower()):
-                connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = num_red_potions - {item_quantity}"))
-            
-            if ("green" in item_sku.lower()):
-                connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_potions = num_green_potions - {item_quantity}"))       
-            
-            if ("blue" in item_sku.lower()):
-                connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_blue_potions = num_blue_potions - {item_quantity}"))   
-
-            connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = gold + ({30 * item_quantity})"))
-            
-            quantity += item_quantity
-            total_gold += 30 * item_quantity
-
+        quantity, total_gold = update_inventory_and_collect_payment(connection, cart_id)
+    print(f"cart_id: {cart_id} payment: {cart_checkout.payment}")
     return {"total_potions_bought": quantity, "total_gold_paid": total_gold}
-
