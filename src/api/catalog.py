@@ -6,7 +6,7 @@ router = APIRouter()
 
 
 def fetch_catalog_items(connection):
-    sql = "SELECT * FROM potion_catalog_items WHERE quantity > 0"
+    sql = "SELECT * FROM potion_catalog WHERE quantity > 0"
     rows = connection.execute(sqlalchemy.text(sql)).fetchall()
     catalog = []
     for row in rows:
