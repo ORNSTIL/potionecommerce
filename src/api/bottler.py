@@ -11,6 +11,9 @@ router = APIRouter(
     dependencies=[Depends(auth.get_api_key)],
 )
 
+def potion_type_tostr(potion_type):
+    return "{" + ",".join(map(str, potion_type)) + "}"
+
 class PotionInventory(BaseModel):
     potion_type: list[int]
     quantity: int
