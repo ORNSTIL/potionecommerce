@@ -70,17 +70,20 @@ def get_bottle_plan():
         potions = connection.execute(sqlalchemy.text("SELECT SUM(quantity) FROM potion_catalog")).fetchone()[0]
         available_potions = max_potions - potions
 
-        barrel_inventory = connection.execute(sqlalchemy.text("SELECT * FROM barrel_inventory")).fetchall()
+        barrel_inventory = connection.execute(sqlalchemy.text("SELECT * FROM barrel_inventory"))
         ml_inventory = [0] * 4
-        for row in barrel_inventory:
+        rows = barrel_inventory.fetchall()
+        rows = [row._asdict() for row in rows]
+        for row in rows:
             for i in range(4):
                 ml_inventory[i] += row["potion_ml"] * row["barrel_type"][i]
 
-        potion_catalog = connection.execute(sqlalchemy.text("SELECT * FROM potion_catalog")).fetchall()
+        potion_catalog = connection.execute(sqlalchemy.text("SELECT * FROM potion_catalog"))
+        potions = potion_catalog.fetchall()
         potion_catalog.sort(key=lambda x: x.price, reverse=True)
         bottling_plan = []
 
-        for potion in potion_catalog:
+        for potion in potions:
             result = connection.execute(sqlalchemy.text("SELECT quantity FROM potion_catalog WHERE potion_type = :potion_type"), {"potion_type": potion_type_tostr(potion.potion_type)})
             potion_quantity = result.fetchone()[0]
             if potion_quantity > potion_threshold:
