@@ -44,7 +44,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 
 
 def get_available_capacity(connection):
-    result = connection.execute(sqlalchemy.text("SELECT ml_capacity_units FROM global_plan"))
+    result = connection.execute(sqlalchemy.text("SELECT ml_capacity FROM global_plan"))
     max_ml = result.fetchone()[0] * 10000
     result = connection.execute(sqlalchemy.text("SELECT SUM(potion_ml) FROM barrel_inventory"))
     ml = result.fetchone()[0]
