@@ -93,13 +93,13 @@ def get_bottle_plan():
                 continue
 
             potion = potion._asdict()
-            quantity = list_floor_division(ml_inventory, potion["potion_type"])
+            quantity = list_floor_division(ml_inventory, ast.literal_eval(potion["potion_type"]))
             quantity = min(quantity, available_potions)
             available_potions -= quantity
-            ml_inventory = [ml_inventory[i] - quantity * potion["potion_type"][i] for i in range(4)]
+            ml_inventory = [ml_inventory[i] - quantity * (ast.literal_eval(potion["potion_type"]))[i] for i in range(4)]
 
             if quantity > 0:
-                bottling_plan.append({"potion_type": potion["potion_type"], "quantity": quantity})
+                bottling_plan.append({"potion_type": ast.literal_eval(potion["potion_type"]), "quantity": quantity})
 
         print(f"bottling_plan: {bottling_plan}")
         return bottling_plan
