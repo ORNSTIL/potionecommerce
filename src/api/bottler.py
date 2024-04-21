@@ -83,7 +83,7 @@ def get_bottle_plan():
 
         potion_catalog = connection.execute(sqlalchemy.text("SELECT * FROM potion_catalog"))
         potions = potion_catalog.fetchall()
-        potion_catalog.sort(key=lambda x: x.price, reverse=True)
+        potions.sort(key=lambda x: x.price, reverse=True)
         bottling_plan = []
 
         for potion in potions:
