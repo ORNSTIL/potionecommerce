@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 import sqlalchemy
 from src import database as db
+import ast
 
 router = APIRouter()
 
@@ -16,7 +17,7 @@ def fetch_catalog_items(connection):
             "name": row["name"],
             "quantity": row["quantity"],
             "price": row["price"],
-            "potion_type": row["potion_type"],
+            "potion_type": ast.literal_eval(row["potion_type"]),
         })
     return catalog
 
