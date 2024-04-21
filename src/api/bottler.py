@@ -13,7 +13,7 @@ router = APIRouter(
 )
 
 def potion_type_tostr(potion_type):
-    return "{" + ",".join(map(str, potion_type)) + "}"
+    return str(potion_type)
 
 def list_floor_division(list1, list2):
     if len(list1) != len(list2):
