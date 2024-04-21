@@ -126,11 +126,11 @@ class CartCheckout(BaseModel):
 def update_inventory_and_collect_payment(connection, cart_id):
     quantity = 0
     total_gold = 0
-    rows = connection.execute(sqlalchemy.text(f"SELECT * FROM cart_inventory WHERE cart_id = {cart_id}")).fetchall()
+    cartids = connection.execute(sqlalchemy.text(f"SELECT * FROM cart_items WHERE cart_id = {cart_id}"))
+    rows = [row._asdict() for row in cartids]
     for row in rows:
-        row = row._asdict()
         quantity += row["quantity"]
-        connection.execute(sqlalchemy.text(f"UPDATE potion_catalo SET quantity = quantity - {row['quantity']} WHERE sku = '{row['item_sku']}'"))
+        connection.execute(sqlalchemy.text(f"UPDATE potion_catalog SET quantity = quantity - {row['quantity']} WHERE sku = '{row['item_sku']}'"))
         price = connection.execute(sqlalchemy.text(f"SELECT price FROM potion_catalog WHERE sku = '{row['item_sku']}'")).fetchone()[0]
         connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = gold + {price * row['quantity']}"))
         total_gold += price * row["quantity"]
