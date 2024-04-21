@@ -18,7 +18,7 @@ class Barrel(BaseModel):
     quantity: int
 
 def potion_type_tostr(potion_type):
-    return "{" + ",".join(map(str, potion_type)) + "}"
+    return str(potion_type)
     
 def update_barrel_inventory(connection, barrel):
     sql = f"""
