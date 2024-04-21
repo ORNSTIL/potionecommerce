@@ -75,8 +75,10 @@ def get_bottle_plan():
         rows = barrel_inventory.fetchall()
         rows = [row._asdict() for row in rows]
         for row in rows:
+            potion_ml = row["potion_ml"]
+            barrel_type_list = ast.literal_eval(row["barrel_type"])
             for i in range(4):
-                ml_inventory[i] += row["potion_ml"] * row["barrel_type"][i]
+                ml_inventory[i] += row["potion_ml"] * barrel_type_list[i]
 
         potion_catalog = connection.execute(sqlalchemy.text("SELECT * FROM potion_catalog"))
         potions = potion_catalog.fetchall()
