@@ -126,7 +126,7 @@ class CartCheckout(BaseModel):
 def update_inventory_and_collect_payment(connection, cart_id):
     quantity = 0
     total_gold = 0
-    cartids = connection.execute(sqlalchemy.text(f"SELECT * FROM cart_items WHERE cart_id = {cart_id}"))
+    cartids = connection.execute(sqlalchemy.text(f"SELECT * FROM cart_inventory WHERE cart_id = {cart_id}"))
     rows = [row._asdict() for row in cartids]
     for row in rows:
         quantity += row["quantity"]
