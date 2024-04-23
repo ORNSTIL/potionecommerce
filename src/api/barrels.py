@@ -17,13 +17,13 @@ class Barrel(BaseModel):
     price: int
     quantity: int
 
-def potion_type_tostr(potion_type):
-    return str(potion_type)
+def strconvert(intlist):
+    return str(intlist)
     
 def update_barrel_inventory(connection, barrel):
     sql = f"""
         UPDATE barrel_inventory SET potion_ml = potion_ml + {barrel.ml_per_barrel * barrel.quantity}
-        WHERE barrel_type = '{potion_type_tostr(barrel.potion_type)}'
+        WHERE barrel_type = '{strconvert(barrel.potion_type)}'
     """
     connection.execute(sqlalchemy.text(sql))
 
@@ -74,7 +74,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             for barrel in wholesale_catalog:
                 if barrel.ml_per_barrel > available_ml or barrel.price > running_total:
                     continue
-                if potion_type["barrel_type"] == potion_type_tostr(barrel.potion_type):
+                if potion_type["barrel_type"] == strconvert(barrel.potion_type):
                     barrel_plan.append({"sku": barrel.sku, "quantity": 1})
                     running_total -= barrel.price
                     available_ml -= barrel.ml_per_barrel
