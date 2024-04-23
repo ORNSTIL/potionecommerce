@@ -12,8 +12,8 @@ router = APIRouter(
     dependencies=[Depends(auth.get_api_key)],
 )
 
-def potion_type_tostr(potion_type):
-    return str(potion_type)
+def strconvert(intlist):
+    return str(intlist)
 
 def list_floor_division(list1, list2):
     if len(list1) != len(list2):
@@ -37,13 +37,13 @@ def update_barrel_and_potion_inventory(connection, potion):
             continue
         barrel_sql = f"""
             UPDATE barrel_inventory SET potion_ml = potion_ml - {potion.quantity * potion.potion_type[i]}
-            WHERE barrel_type = '{potion_type_tostr(barrel_type)}'
+            WHERE barrel_type = '{strconvert(barrel_type)}'
         """
         connection.execute(sqlalchemy.text(barrel_sql))
 
     gold_sql = f"""
         UPDATE potion_catalog SET quantity = quantity + {potion.quantity}
-        WHERE potion_type = '{potion_type_tostr(potion.potion_type)}'
+        WHERE potion_type = '{strconvert(potion.potion_type)}'
     """
     connection.execute(sqlalchemy.text(gold_sql))
 
@@ -87,7 +87,7 @@ def get_bottle_plan():
         bottling_plan = []
 
         for potion in potions:
-            result = connection.execute(sqlalchemy.text("SELECT quantity FROM potion_catalog WHERE potion_type = :potion_type"), {"potion_type": potion_type_tostr(potion.potion_type)})
+            result = connection.execute(sqlalchemy.text("SELECT quantity FROM potion_catalog WHERE potion_type = :potion_type"), {"potion_type": strconvert(potion.potion_type)})
             potion_quantity = result.fetchone()[0]
             if potion_quantity > potion_threshold:
                 continue
