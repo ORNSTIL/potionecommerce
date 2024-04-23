@@ -21,17 +21,17 @@ def strconvert(intlist):
     return str(intlist)
     
 def update_barrel_inventory(connection, barrel):
-    sql = f"""
+    barrel_inventory_sql = f"""
         UPDATE barrel_inventory SET potion_ml = potion_ml + {barrel.ml_per_barrel * barrel.quantity}
         WHERE barrel_type = '{strconvert(barrel.potion_type)}'
     """
-    connection.execute(sqlalchemy.text(sql))
+    connection.execute(sqlalchemy.text(barrel_inventory_sql))
 
 def update_global_inventory(connection, barrel):
-    sql = f"""
+    global_inventory_sql = f"""
         UPDATE global_inventory SET gold = gold - {barrel.price * barrel.quantity}
     """
-    connection.execute(sqlalchemy.text(sql))
+    connection.execute(sqlalchemy.text(global_inventory_sql))
 
 @router.post("/deliver/{order_id}")
 def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
