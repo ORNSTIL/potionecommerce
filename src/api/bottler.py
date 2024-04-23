@@ -33,17 +33,17 @@ def update_barrel_and_potion_inventory(connection, potion):
         barrel_type[i] = 1
         if potion.potion_type[i] == 0:
             continue
-        barrel_sql = f"""
+        barrel_inventory_sql = f"""
             UPDATE barrel_inventory SET potion_ml = potion_ml - {potion.quantity * potion.potion_type[i]}
             WHERE barrel_type = '{strconvert(barrel_type)}'
         """
-        connection.execute(sqlalchemy.text(barrel_sql))
+        connection.execute(sqlalchemy.text(barrel_inventory_sql))
 
-    gold_sql = f"""
+    potion_catalog_sql = f"""
         UPDATE potion_catalog SET quantity = quantity + {potion.quantity}
         WHERE potion_type = '{strconvert(potion.potion_type)}'
     """
-    connection.execute(sqlalchemy.text(gold_sql))
+    connection.execute(sqlalchemy.text(potion_catalog_sql))
 
 @router.post("/deliver/{order_id}")
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
