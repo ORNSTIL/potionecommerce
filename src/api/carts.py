@@ -87,12 +87,12 @@ def post_visits(visit_id: int, customers: list[Customer]):
 
 
 def insert_new_cart(connection, customer_name, character_class, level):
-    sql = f"""
+    insert_cart_sql = f"""
         INSERT INTO carts (customer_name, character_class, level)
         VALUES ('{customer_name}', '{character_class}', {level})
         RETURNING id
     """
-    result = connection.execute(sqlalchemy.text(sql))
+    result = connection.execute(sqlalchemy.text(insert_cart_sql))
     return result.fetchone()[0]
 
 @router.post("/")
@@ -107,11 +107,11 @@ class CartItem(BaseModel):
 
 
 def insert_cart_item(connection, cart_id, item_sku, quantity):
-    sql = f"""
+    cart_inventory_sql = f"""
         INSERT INTO cart_inventory (cart_id, item_sku, quantity)
         VALUES ({cart_id}, '{item_sku}', {quantity})
     """
-    connection.execute(sqlalchemy.text(sql))
+    connection.execute(sqlalchemy.text(cart_inventory_sql))
 
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
