@@ -15,15 +15,13 @@ router = APIRouter(
 def strconvert(intlist):
     return str(intlist)
 
-def list_floor_division(list1, list2):
+def divide_lists(list1, list2):
     if len(list1) != len(list2):
-        raise ValueError("Lists must be of the same length")
-    available = []
-    for i in range(len(list1)):
-        if list2[i] == 0:
-            continue
-        available.append(list1[i] // list2[i])
-    return min(available)
+        raise ValueError("Input error: Both lists must contain an equal number of elements.")
+
+    results = (num1 // num2 for num1, num2 in zip(list1, list2) if num2 != 0)
+
+    return min(results)
 
 class PotionInventory(BaseModel):
     potion_type: list[int]
@@ -93,7 +91,7 @@ def get_bottle_plan():
                 continue
 
             potion = potion._asdict()
-            quantity = list_floor_division(ml_inventory, ast.literal_eval(potion["potion_type"]))
+            quantity = divide_lists(ml_inventory, ast.literal_eval(potion["potion_type"]))
             quantity = min(quantity, available_potions)
             available_potions -= quantity
             ml_inventory = [ml_inventory[i] - quantity * (ast.literal_eval(potion["potion_type"]))[i] for i in range(4)]
