@@ -23,8 +23,8 @@ def get_inventory():
 
         return [
                 {
-                    "number_of_potions": number_of_potions,
-                    "ml_in_barrels": number_of_ml,
+                    "number_of_potions": potion_inventory,
+                    "ml_in_barrels": barrel_inventory,
                     "gold": total_inventory["gold"]
                 }
             ]
