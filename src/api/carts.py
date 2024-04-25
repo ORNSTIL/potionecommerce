@@ -87,13 +87,17 @@ def post_visits(visit_id: int, customers: list[Customer]):
 
 
 def insert_new_cart(connection, customer_name, character_class, level):
-    insert_cart_sql = f"""
-        INSERT INTO carts (customer_name, character_class, level)
-        VALUES ('{customer_name}', '{character_class}', {level})
-        RETURNING id
-    """
-    result = connection.execute(sqlalchemy.text(insert_cart_sql))
-    return result.fetchone()[0]
+    insert_cart_sql = """
+    INSERT INTO carts (customer_name, character_class, level)
+    VALUES (:customer_name, :character_class, :level)
+    RETURNING id
+"""
+
+    insert_res = connection.execute(
+    sqlalchemy.text(insert_cart_sql),
+    {"customer_name": customer_name, "character_class": character_class, "level": level}
+)
+    return insert_res.fetchone()[0]
 
 @router.post("/")
 def create_cart(new_cart: Customer):
@@ -107,11 +111,14 @@ class CartItem(BaseModel):
 
 
 def insert_cart_item(connection, cart_id, item_sku, quantity):
-    cart_inventory_sql = f"""
+    cart_inventory_sql = """
         INSERT INTO cart_inventory (cart_id, item_sku, quantity)
-        VALUES ({cart_id}, '{item_sku}', {quantity})
+        VALUES (:cart_id, :item_sku, :quantity)
     """
-    connection.execute(sqlalchemy.text(cart_inventory_sql))
+    connection.execute(
+        sqlalchemy.text(cart_inventory_sql),
+        {"cart_id": cart_id, "item_sku": item_sku, "quantity": quantity}
+    )
 
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
@@ -120,21 +127,39 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     print(f"cart_id: {cart_id} item_sku: {item_sku} quantity: {cart_item.quantity}")
     return "OK"
 
+
 class CartCheckout(BaseModel):
     payment: str
 
 def update_inventory_and_collect_payment(connection, cart_id):
     quantity = 0
     total_gold = 0
-    cartids = connection.execute(sqlalchemy.text(f"SELECT * FROM cart_inventory WHERE cart_id = {cart_id}"))
-    rows = [row._asdict() for row in cartids]
-    for row in rows:
-        quantity += row["quantity"]
-        connection.execute(sqlalchemy.text(f"UPDATE potion_catalog SET quantity = quantity - {row['quantity']} WHERE sku = '{row['item_sku']}'"))
-        price = connection.execute(sqlalchemy.text(f"SELECT price FROM potion_catalog WHERE sku = '{row['item_sku']}'")).fetchone()[0]
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = gold + {price * row['quantity']}"))
-        total_gold += price * row["quantity"]
+    
+
+    cart_items = connection.execute(sqlalchemy.text("SELECT item_sku, quantity FROM cart_inventory WHERE cart_id = :cart_id"), {"cart_id": cart_id})
+    
+    for row in cart_items:
+        connection.execute(
+            sqlalchemy.text("UPDATE potion_catalog SET quantity = quantity - :quantity WHERE sku = :item_sku"),
+            {"quantity": row.quantity, "item_sku": row.item_sku}
+        )
+
+        price = connection.execute(
+            sqlalchemy.text("SELECT price FROM potion_catalog WHERE sku = :item_sku"),
+            {"item_sku": row.item_sku}
+        ).scalar()
+        
+        connection.execute(
+            sqlalchemy.text("UPDATE global_inventory SET gold = gold + :total_price"),
+            {"total_price": price * row.quantity}
+        )
+        
+
+        quantity += row.quantity
+        total_gold += price * row.quantity
+        
     return quantity, total_gold
+
 
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
