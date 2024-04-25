@@ -66,6 +66,7 @@ def get_bottle_plan():
     with db.engine.begin() as connection:
         potion_threshold = fetch_potion_threshold(connection)
         max_potions = fetch_max_potions(connection)
+        print("max potions:", max_potions)
         potions = connection.execute(sqlalchemy.text("SELECT SUM(quantity) FROM potion_catalog")).fetchone()[0]
         available_potions = max_potions - potions
 
@@ -83,7 +84,7 @@ def get_bottle_plan():
         potions = potion_catalog.fetchall()
         potions.sort(key=lambda x: x.price, reverse=True)
         bottling_plan = []
-
+        print("current available potion count:", available_potions)
         for potion in potions:
             result = connection.execute(sqlalchemy.text("SELECT quantity FROM potion_catalog WHERE potion_type = :potion_type"), {"potion_type": strconvert(potion.potion_type)})
             potion_quantity = result.fetchone()[0]
@@ -98,6 +99,8 @@ def get_bottle_plan():
 
             if quantity > 0:
                 bottling_plan.append({"potion_type": ast.literal_eval(potion["potion_type"]), "quantity": quantity})
+
+            print("potion type: " + potion["potion_type"] + " and now available potion count: " + available_potions)
 
         print(f"bottling_plan: {bottling_plan}")
         return bottling_plan
