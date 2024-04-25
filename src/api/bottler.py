@@ -99,7 +99,8 @@ def get_bottle_plan():
             if quantity > 0:
                 bottling_plan.append({"potion_type": ast.literal_eval(potion["potion_type"]), "quantity": quantity})
 
-            print("potion type: " + potion["potion_type"] + " and now available potion count: " + available_potions)
+            print("potion type:", potion["potion_type"])
+            print("and now available potion count:", available_potions)
 
         print(f"bottling_plan: {bottling_plan}")
         return bottling_plan
