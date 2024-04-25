@@ -29,21 +29,27 @@ class PotionInventory(BaseModel):
 
 def update_barrel_and_potion_inventory(connection, potion):
     for i in range(4):
-        barrel_type = [0] * 4
-        barrel_type[i] = 1
         if potion.potion_type[i] == 0:
             continue
-        barrel_inventory_sql = f"""
-            UPDATE barrel_inventory SET potion_ml = potion_ml - {potion.quantity * potion.potion_type[i]}
-            WHERE barrel_type = '{strconvert(barrel_type)}'
-        """
-        connection.execute(sqlalchemy.text(barrel_inventory_sql))
 
-    potion_catalog_sql = f"""
-        UPDATE potion_catalog SET quantity = quantity + {potion.quantity}
-        WHERE potion_type = '{strconvert(potion.potion_type)}'
+        barrel_inventory_sql = """
+            UPDATE barrel_inventory SET potion_ml = potion_ml - :potion_ml_decrement
+            WHERE barrel_type = :barrel_type
+        """
+        connection.execute(
+            sqlalchemy.text(barrel_inventory_sql),
+            {"potion_ml_decrement": potion.quantity * potion.potion_type[i], "barrel_type": strconvert([1 if j == i else 0 for j in range(4)])}
+        )
+
+    potion_catalog_sql = """
+        UPDATE potion_catalog SET quantity = quantity + :quantity_increment
+        WHERE potion_type = :potion_type
     """
-    connection.execute(sqlalchemy.text(potion_catalog_sql))
+    connection.execute(
+        sqlalchemy.text(potion_catalog_sql),
+        {"quantity_increment": potion.quantity, "potion_type": strconvert(potion.potion_type)}
+    )
+
 
 @router.post("/deliver/{order_id}")
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
@@ -69,32 +75,30 @@ def get_bottle_plan():
        
         available_potions = max_potions - potions
 
-        barrel_inventory = connection.execute(sqlalchemy.text("SELECT * FROM barrel_inventory"))
-        ml_inventory = [0] * 4
-        rows = barrel_inventory.fetchall()
-        rows = [row._asdict() for row in rows]
-        for row in rows:
-            potion_ml = row["potion_ml"]
-            barrel_type_list = ast.literal_eval(row["barrel_type"])
-            for i in range(4):
-                ml_inventory[i] += row["potion_ml"] * barrel_type_list[i]
+        barrel_inventory = connection.execute(sqlalchemy.select([barrel_inventory])).fetchall()
 
-        potion_catalog = connection.execute(sqlalchemy.text("SELECT * FROM potion_catalog"))
-        potions = potion_catalog.fetchall()
-        potions.sort(key=lambda x: x.price, reverse=True)
+        ml_inventory = [0] * 4
+
+        for row in barrel_inventory:
+            potion_ml = row.potion_ml
+            barrel_type_list = ast.literal_eval(row.barrel_type)
+            for i in range(4):
+                ml_inventory[i] += potion_ml * barrel_type_list[i]
+
+
+        potions = connection.execute(sqlalchemy.select([potion_catalog]).order_by(potion_catalog.c.price.desc())).fetchall()
+
         bottling_plan = []
         print("current available potion count:", available_potions)
         for potion in potions:
-            result = connection.execute(sqlalchemy.text("SELECT quantity FROM potion_catalog WHERE potion_type = :potion_type"), {"potion_type": strconvert(potion.potion_type)})
-            potion_quantity = result.fetchone()[0]
-            if potion_quantity > potion_threshold:
+            if potion.quantity > potion_threshold:
                 continue
 
-            potion = potion._asdict()
-            quantity = divide_lists(ml_inventory, ast.literal_eval(potion["potion_type"]))
-            quantity = min(quantity, available_potions)
+            potion = dict(potion)
+            quantity = min(divide_lists(ml_inventory, ast.literal_eval(potion["potion_type"])), available_potions)
             available_potions -= quantity
-            ml_inventory = [ml_inventory[i] - quantity * (ast.literal_eval(potion["potion_type"]))[i] for i in range(4)]
+            
+            ml_inventory = [ml_inventory[i] - quantity * ast.literal_eval(potion["potion_type"])[i] for i in range(4)]
 
             if quantity > 0:
                 bottling_plan.append({"potion_type": ast.literal_eval(potion["potion_type"]), "quantity": quantity})
@@ -104,7 +108,6 @@ def get_bottle_plan():
 
         print(f"bottling_plan: {bottling_plan}")
         return bottling_plan
-
 
 
 if __name__ == "__main__":
