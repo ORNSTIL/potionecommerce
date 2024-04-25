@@ -7,17 +7,17 @@ router = APIRouter()
 
 
 def fetch_catalog_items(connection):
-    sql = "SELECT * FROM potion_catalog WHERE quantity > 0"
-    rows = connection.execute(sqlalchemy.text(sql)).fetchall()
+    get_catalog_sql = "SELECT * FROM potion_catalog WHERE quantity > 0"
+    get_catalogs = connection.execute(sqlalchemy.text(get_catalog_sql)).fetchall()
     catalog = []
-    for row in rows:
-        row = row._asdict()
+    for get_catalog in get_catalogs:
+        get_catalog = get_catalog._asdict()
         catalog.append({
-            "sku": row["sku"],
-            "name": row["name"],
-            "quantity": row["quantity"],
-            "price": row["price"],
-            "potion_type": ast.literal_eval(row["potion_type"]),
+            "sku": get_catalog["sku"],
+            "name": get_catalog["name"],
+            "quantity": get_catalog["quantity"],
+            "price": get_catalog["price"],
+            "potion_type": ast.literal_eval(get_catalog["potion_type"]),
         })
     return catalog
 
