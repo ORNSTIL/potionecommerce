@@ -57,17 +57,16 @@ def fetch_potion_threshold(connection):
     result = connection.execute(sqlalchemy.text("SELECT potion_threshold FROM global_inventory"))
     return result.fetchone()[0]
 
-def fetch_max_potions(connection):
-    result = connection.execute(sqlalchemy.text("SELECT potion_capacity FROM global_plan"))
-    return result.fetchone()[0] * 50
 
 @router.post("/plan")
 def get_bottle_plan():
     with db.engine.begin() as connection:
+        max_potions = 50
         potion_threshold = fetch_potion_threshold(connection)
-        max_potions = fetch_max_potions(connection)
+        
         print("max potions:", max_potions)
         potions = connection.execute(sqlalchemy.text("SELECT SUM(quantity) FROM potion_catalog")).fetchone()[0]
+       
         available_potions = max_potions - potions
 
         barrel_inventory = connection.execute(sqlalchemy.text("SELECT * FROM barrel_inventory"))
