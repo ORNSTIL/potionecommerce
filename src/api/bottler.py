@@ -65,15 +65,25 @@ def fetch_potion_threshold(connection):
     result = connection.execute(sqlalchemy.text("SELECT potion_threshold FROM global_inventory"))
     return result.fetchone()[0]
 
-def fetch_barrel_inventory(connection):
+from sqlalchemy import MetaData, Table, select
+
+def fetch_barrel_inventory():
+
     metadata = MetaData()
-    barrel_inventory_table = Table('barrel_inventory', metadata, autoload_with=connection)
-    barrels = connection.execute(select([barrel_inventory_table])).fetchall()
-    barrel_inventory = [dict(barrel) for barrel in barrels]
+    
+    barrel_inventory_table = Table('barrel_inventory', metadata, autoload_with=db.engine)
+    query = select([barrel_inventory_table])
+    
+    with db.engine.begin() as connection:
+        result = connection.execute(query)
+        barrel_inventory = [dict(barrel) for barrel in result.fetchall()] 
+
     return barrel_inventory
+
 
 @router.post("/plan")
 def get_bottle_plan():
+    barrel_inventory = fetch_barrel_inventory()
     with db.engine.begin() as connection:
         max_potions = 50
         potion_threshold = fetch_potion_threshold(connection)
@@ -83,7 +93,7 @@ def get_bottle_plan():
        
         available_potions = max_potions - potions
 
-        barrel_inventory = fetch_barrel_inventory(connection)
+        
 
         ml_inventory = [0] * 4
 
