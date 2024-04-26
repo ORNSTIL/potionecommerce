@@ -77,9 +77,9 @@ def calculate_sort_key(barrel):
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     print(wholesale_catalog)
     with db.engine.begin() as connection:
-        gold_total = global_inventory["gold"]
+        
         global_inventory = fetch_global_inventory(connection)
-
+        gold_total = global_inventory["gold"]
         available_ml = get_available_capacity(connection)
         
         
