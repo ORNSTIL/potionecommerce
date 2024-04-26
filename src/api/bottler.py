@@ -5,7 +5,7 @@ from src.api import auth
 import sqlalchemy
 from src import database as db
 import ast
-from sqlalchemy import Table, Metadata, Column, Integer, String, Float, select
+from sqlalchemy import Table, MetaData, Column, Integer, String, Float, select
 
 
 router = APIRouter(
