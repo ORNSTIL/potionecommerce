@@ -92,13 +92,13 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         filtered_barrel_inventory = [potion_type for potion_type in barrel_inventory if potion_type["potion_ml"] <= global_inventory["ml_threshold"]]
         for potion_type in filtered_barrel_inventory:
             for barrel in wholesale_catalog_sorted:
-                if barrel.ml_per_barrel > available_ml or barrel.price > running_total:
+                if barrel.ml_per_barrel > available_ml or barrel.price > gold_total:
                     continue
                 if potion_type["barrel_type"] == strconvert(barrel.potion_type):
                     barrel_plan.append({"sku": barrel.sku, "quantity": 1})
                     
                     available_ml -= barrel.ml_per_barrel
-                    running_total -= barrel.price
+                    gold_total -= barrel.price
                     break
         print(f"barrel purchase plan: {barrel_plan}, gold_total: {gold_total}")
         return barrel_plan
