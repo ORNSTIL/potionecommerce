@@ -74,7 +74,7 @@ def fetch_barrel_inventory(connection):
         autoload_with=connection
     )
     barrels = connection.execute(select([barrel_inventory_table])).fetchall()
-    barrel_inventory = [dict(row) for barrel in barrels]
+    barrel_inventory = [dict(barrel) for barrel in barrels]
     return barrel_inventory
 
 @router.post("/plan")
