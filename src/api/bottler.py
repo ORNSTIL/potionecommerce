@@ -82,47 +82,54 @@ def fetch_barrel_inventory(connection):
 
 @router.post("/plan")
 def get_bottle_plan():
-    
     with db.engine.begin() as connection:
-        barrel_inventory = fetch_barrel_inventory(connection)
-        max_potions = 50
+        # Fetch potion threshold
         potion_threshold = fetch_potion_threshold(connection)
         
-        print("max potions:", max_potions)
-        potions = connection.execute(sqlalchemy.text("SELECT SUM(quantity) FROM potion_catalog")).fetchone()[0]
-       
-        available_potions = max_potions - potions
+        # Fetch the total number of potions
+        max_potions = 50
+        total_potions = connection.execute(func.sum(potion_catalog.c.quantity)).scalar() or 0
+        available_potions = max_potions - total_potions
 
-        
-
-        ml_inventory = [0] * 4
-
+        # Fetch ml inventory
+        ml_inventory = [0, 0, 0, 0]
+        barrel_inventory = fetch_barrel_inventory(connection)
         for listing in barrel_inventory:
             potion_ml = listing["potion_ml"]
             barrel_type_list = ast.literal_eval(listing["barrel_type"])
             for i in range(4):
                 ml_inventory[i] += potion_ml * barrel_type_list[i]
 
+        # Fetch potions to bottle
+        potions = connection.execute(
+            select([potion_catalog])
+            .where(potion_catalog.c.quantity <= potion_threshold)
+            .order_by(potion_catalog.c.price.desc())
+        ).fetchall()
 
+        # Calculate the total ml required for each potion type
+        total_ml_required = {tuple(ast.literal_eval(potion["potion_type"])): 0 for potion in potions}
+        for potion in potions:
+            potion_type = tuple(ast.literal_eval(potion["potion_type"]))
+            total_ml_required[potion_type] += sum(potion_type)
 
-        potions = connection.execute(sqlalchemy.select([potion_catalog]).order_by(potion_catalog.c.price.desc())).fetchall()
+        # Distribute available ml evenly among potion types
+        ml_allocation = {}
+        for potion_type, ml in zip(total_ml_required.keys(), ml_inventory):
+            if sum(potion_type) > 0:
+                ml_allocation[potion_type] = min(ml, available_potions * sum(potion_type) / sum(ml_inventory))
 
         bottling_plan = []
         print("current available potion count:", available_potions)
-        for potion in potions:
-            if potion.quantity > potion_threshold:
-                continue
 
-            potion = dict(potion)
-            quantity = min(divide_lists(ml_inventory, ast.literal_eval(potion["potion_type"])), available_potions)
+        for potion_type, ml_needed in total_ml_required.items():
+            quantity = min(ml_allocation.get(potion_type, 0), available_potions)
             available_potions -= quantity
-            
-            ml_inventory = [ml_inventory[i] - quantity * ast.literal_eval(potion["potion_type"])[i] for i in range(4)]
 
             if quantity > 0:
-                bottling_plan.append({"potion_type": ast.literal_eval(potion["potion_type"]), "quantity": quantity})
+                bottling_plan.append({"potion_type": potion_type, "quantity": quantity})
 
-            print("potion type:", potion["potion_type"])
+            print("potion type:", potion_type)
             print("and now available potion count:", available_potions)
 
         print(f"bottling_plan: {bottling_plan}")
