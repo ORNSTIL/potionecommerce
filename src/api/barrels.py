@@ -54,6 +54,7 @@ def get_available_capacity(connection):
         SELECT (gp.ml_capacity * 10000) - COALESCE(SUM(bi.potion_ml), 0) AS available_capacity
         FROM global_plan gp
         LEFT JOIN barrel_inventory bi ON 1=1
+        GROUP BY gp.ml_capacity  -- Group by gp.ml_capacity
     """))
     available_capacity = result.fetchone()[0]
     return available_capacity
