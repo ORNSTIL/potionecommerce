@@ -5,7 +5,7 @@ from src.api import auth
 import sqlalchemy
 from src import database as db
 import ast
-from sqlalchemy import Table, Column, Integer, String, Float, select
+from sqlalchemy import Table, Metadata, Column, Integer, String, Float, select
 
 
 router = APIRouter(
@@ -66,13 +66,8 @@ def fetch_potion_threshold(connection):
     return result.fetchone()[0]
 
 def fetch_barrel_inventory(connection):
-    barrel_inventory_table = Table(
-        'barrel_inventory', 
-        sqlalchemy.MetaData(),
-        Column('barrel_type', String),
-        Column('potion_ml', Integer),
-        autoload_with=connection
-    )
+    metadata = MetaData()
+    barrel_inventory_table = Table('barrel_inventory', metadata, autoload_with=connection)
     barrels = connection.execute(select([barrel_inventory_table])).fetchall()
     barrel_inventory = [dict(barrel) for barrel in barrels]
     return barrel_inventory
