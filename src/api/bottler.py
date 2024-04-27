@@ -86,17 +86,7 @@ def get_bottle_plan():
         potion_threshold = fetch_potion_threshold(connection)
         
         max_potions = 50
-        metadata = MetaData()
-        potion_catalog = Table(
-            'potion_catalog',
-            metadata,
-            Column('sku', Text, primary_key=True),
-            Column('name', Text),
-            Column('quantity', Integer),
-            Column('price', Integer),
-            Column('potion_type', Text), 
-        )
-        total_potions = connection.execute(func.sum(potion_catalog.c.quantity)).scalar() or 0
+        total_potions = connection.execute(select([func.sum(db.potion_catalog.c.quantity)])).scalar() or 0
         available_potions = max_potions - total_potions
 
         ml_inventory = [0, 0, 0, 0]
