@@ -65,17 +65,9 @@ def fetch_potion_threshold(connection):
     result = connection.execute(sqlalchemy.text("SELECT potion_threshold FROM global_inventory"))
     return result.fetchone()[0]
 
-from sqlalchemy import MetaData, Table, select
-
 def fetch_barrel_inventory(connection):
-
-    metadata = MetaData()
-    
-    barrel_inventory_table = Table('barrel_inventory', metadata, autoload_with=db.engine)
-    query = select([barrel_inventory_table])
-
-    result = connection.execute(query)
-    barrel_inventory = [dict(barrel) for barrel in result.fetchall()] 
+    barrels = connection.execute(sqlalchemy.text("SELECT * FROM barrel_inventory"))
+    barrel_inventory = [dict(barrel) for barrel in barrels.fetchall()] 
 
     return barrel_inventory
 
@@ -86,10 +78,11 @@ def get_bottle_plan():
         potion_threshold = fetch_potion_threshold(connection)
         
         max_potions = 50
-        total_potions = connection.execute(select([func.sum(db.potion_catalog.c.quantity)])).scalar() or 0
+        total_potions = connection.execute(sqlalchemy.text("SELECT SUM(quantity) FROM potion_catalog")).fetchone()[0]
         available_potions = max_potions - total_potions
 
-        ml_inventory = [0, 0, 0, 0]
+        ml_inventory = 4*[0]
+        
         barrel_inventory = fetch_barrel_inventory(connection)
         for listing in barrel_inventory:
             potion_ml = listing["potion_ml"]
@@ -97,11 +90,8 @@ def get_bottle_plan():
             for i in range(4):
                 ml_inventory[i] += potion_ml * barrel_type_list[i]
 
-        potions = connection.execute(
-            select([potion_catalog])
-            .where(potion_catalog.c.quantity <= potion_threshold)
-            .order_by(potion_catalog.c.price.desc())
-        ).fetchall()
+        potions = connection.execute(text("SELECT potion_catalog WHERE quantity <= potion_threshold ORDER_BY price DESC"), {"potion_threshold": potion_threshold}).fetchall()
+
 
         total_ml_required = {tuple(ast.literal_eval(potion["potion_type"])): 0 for potion in potions}
         for potion in potions:
