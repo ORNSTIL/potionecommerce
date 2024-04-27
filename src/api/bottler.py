@@ -83,15 +83,22 @@ def fetch_barrel_inventory(connection):
 @router.post("/plan")
 def get_bottle_plan():
     with db.engine.begin() as connection:
-        # Fetch potion threshold
         potion_threshold = fetch_potion_threshold(connection)
         
-        # Fetch the total number of potions
         max_potions = 50
+        metadata = MetaData()
+        potion_catalog = Table(
+            'potion_catalog',
+            metadata,
+            Column('sku', Text, primary_key=True),
+            Column('name', Text),
+            Column('quantity', Integer),
+            Column('price', Integer),
+            Column('potion_type', Text), 
+        )
         total_potions = connection.execute(func.sum(potion_catalog.c.quantity)).scalar() or 0
         available_potions = max_potions - total_potions
 
-        # Fetch ml inventory
         ml_inventory = [0, 0, 0, 0]
         barrel_inventory = fetch_barrel_inventory(connection)
         for listing in barrel_inventory:
@@ -100,20 +107,17 @@ def get_bottle_plan():
             for i in range(4):
                 ml_inventory[i] += potion_ml * barrel_type_list[i]
 
-        # Fetch potions to bottle
         potions = connection.execute(
             select([potion_catalog])
             .where(potion_catalog.c.quantity <= potion_threshold)
             .order_by(potion_catalog.c.price.desc())
         ).fetchall()
 
-        # Calculate the total ml required for each potion type
         total_ml_required = {tuple(ast.literal_eval(potion["potion_type"])): 0 for potion in potions}
         for potion in potions:
             potion_type = tuple(ast.literal_eval(potion["potion_type"]))
             total_ml_required[potion_type] += sum(potion_type)
 
-        # Distribute available ml evenly among potion types
         ml_allocation = {}
         for potion_type, ml in zip(total_ml_required.keys(), ml_inventory):
             if sum(potion_type) > 0:
