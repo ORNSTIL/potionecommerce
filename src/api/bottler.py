@@ -70,7 +70,7 @@ def fetch_barrel_inventory(connection):
     barrels = barrel_inventory.fetchall()
     barrels = [barrel._asdict() for barrel in barrels]
 
-    return barrel, barrels
+    return barrels
 
 
 @router.post("/plan")
@@ -84,10 +84,10 @@ def get_bottle_plan():
 
         ml_inventory = 4*[0]
         
-        listing, barrel_inventory = fetch_barrel_inventory(connection)
-        for listing in barrel_inventory:
-            potion_ml = listing["potion_ml"]
-            barrel_type_list = ast.literal_eval(listing["barrel_type"])
+        barrel_inventory = fetch_barrel_inventory(connection)
+        for barrel in barrel_inventory:
+            potion_ml = barrel["potion_ml"]
+            barrel_type_list = ast.literal_eval(barrel["barrel_type"])
             for i in range(4):
                 ml_inventory[i] += potion_ml * barrel_type_list[i]
 
