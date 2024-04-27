@@ -91,7 +91,7 @@ def get_bottle_plan():
             for i in range(4):
                 ml_inventory[i] += potion_ml * barrel_type_list[i]
 
-        potions = connection.execute(text("SELECT * FROM potion_catalog WHERE quantity <= :potion_threshold ORDER BY price DESC"), {"potion_threshold": potion_threshold}).fetchall()
+        potions = connection.execute(sqlalchemy.text("SELECT * FROM potion_catalog WHERE quantity <= :potion_threshold ORDER BY price DESC"), {"potion_threshold": potion_threshold}).fetchall()
 
 
         total_ml_required = {tuple(ast.literal_eval(potion["potion_type"])): 0 for potion in potions}
