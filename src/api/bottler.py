@@ -66,10 +66,11 @@ def fetch_potion_threshold(connection):
     return result.fetchone()[0]
 
 def fetch_barrel_inventory(connection):
-    barrels = connection.execute(sqlalchemy.text("SELECT * FROM barrel_inventory"))
-    barrel_inventory = [dict(barrel) for barrel in barrels.fetchall()] 
+    barrel_inventory = connection.execute(sqlalchemy.text("SELECT * FROM barrel_inventory"))
+    barrels = barrel_inventory.fetchall()
+    barrels = [barrel._asdict() for barrel in barrels]
 
-    return barrel_inventory
+    return barrel, barrels
 
 
 @router.post("/plan")
@@ -83,14 +84,14 @@ def get_bottle_plan():
 
         ml_inventory = 4*[0]
         
-        barrel_inventory = fetch_barrel_inventory(connection)
+        listing, barrel_inventory = fetch_barrel_inventory(connection)
         for listing in barrel_inventory:
             potion_ml = listing["potion_ml"]
             barrel_type_list = ast.literal_eval(listing["barrel_type"])
             for i in range(4):
                 ml_inventory[i] += potion_ml * barrel_type_list[i]
 
-        potions = connection.execute(text("SELECT potion_catalog WHERE quantity <= potion_threshold ORDER_BY price DESC"), {"potion_threshold": potion_threshold}).fetchall()
+        potions = connection.execute(text("SELECT * FROM potion_catalog WHERE quantity <= :potion_threshold ORDER BY price DESC"), {"potion_threshold": potion_threshold}).fetchall()
 
 
         total_ml_required = {tuple(ast.literal_eval(potion["potion_type"])): 0 for potion in potions}
