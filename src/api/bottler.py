@@ -72,6 +72,19 @@ def fetch_barrel_inventory(connection):
 
     return barrels
 
+def calculate_proportions(array, ratios):
+    total = sum(array)
+    results = []
+    
+    for i, ratio in enumerate(ratios):
+        if ratio > 0:
+            x = ratio / 100
+            proportion = (x * array[i]) / total if total > 0 else 0
+        else:
+            proportion = 0
+        results.append(proportion)
+    
+    return results
 
 @router.post("/plan")
 def get_bottle_plan():
@@ -90,20 +103,27 @@ def get_bottle_plan():
             barrel_type_list = ast.literal_eval(barrel["barrel_type"])
             for i in range(4):
                 ml_inventory[i] += potion_ml * barrel_type_list[i]
+        print(ml_inventory)
 
-        potions = connection.execute(sqlalchemy.text("SELECT * FROM potion_catalog WHERE quantity <= :potion_threshold ORDER BY price DESC"), {"potion_threshold": potion_threshold}).fetchall()
+        potions = connection.execute(sqlalchemy.text("SELECT potion_type FROM potion_catalog WHERE quantity <= :potion_threshold ORDER BY price DESC"), {"potion_threshold": potion_threshold}).fetchall()
 
-
-        total_ml_required = {tuple(ast.literal_eval(potion["potion_type"])): 0 for potion in potions}
+  
+        total_ml_required = {}
         for potion in potions:
-            potion_type = tuple(ast.literal_eval(potion["potion_type"]))
-            total_ml_required[potion_type] += sum(potion_type)
+            potion_type_str = potion[0] 
+            potion_type_list = ast.literal_eval(potion_type_str)
+            total_ml_required[tuple(potion_type_list)] = 0
 
+        print(total_ml_required)
         ml_allocation = {}
-        for potion_type, ml in zip(total_ml_required.keys(), ml_inventory):
-            if sum(potion_type) > 0:
-                ml_allocation[potion_type] = min(ml, available_potions * sum(potion_type) / sum(ml_inventory))
+        for potion_type in total_ml_required.keys():
+            print(potion_type)
+            print(ml_inventory)
+            amount_array = calculate_proportions(ml_inventory, potion_type)
+            print(amount_array)
+            ml_allocation[potion_type] = int(sum(amount_array) * available_potions)
 
+        print(ml_allocation)
         bottling_plan = []
         print("current available potion count:", available_potions)
 
