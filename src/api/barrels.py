@@ -22,19 +22,20 @@ def strconvert(intlist):
     
 @router.post("/deliver/{order_id}")
 def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
-    # Start a transaction for barrel delivery
+    print(barrels_delivered)
+
     create_transaction_sql = """
         INSERT INTO transactions (type, created_at)
         VALUES ('barrel_delivery', CURRENT_TIMESTAMP) RETURNING id;
     """
     
-    # Record the changes in the ml_ledger
+
     ml_ledger_sql = """
         INSERT INTO ml_ledger (transaction_id, barrel_type, change)
         VALUES (:transaction_id, :barrel_type, :change);
     """
     
-    # Record the changes in the gold_ledger
+
     gold_ledger_sql = """
         INSERT INTO gold_ledger (transaction_id, change)
         VALUES (:transaction_id, :change);
@@ -46,6 +47,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
         ).fetchone()[0]
         
         for barrel in barrels_delivered:
+            print("barrel to be delivered:", barrel)
             # Calculate the total ML for this type of barrel
             total_ml = barrel.ml_per_barrel * barrel.quantity
             connection.execute(
@@ -110,5 +112,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 
                 # Update the barrel_inventory dictionary
                 barrel_inventory[barrel_type_str] = barrel_inventory.get(barrel_type_str, 0) + max_barrels * barrel.ml_per_barrel
+
+    print(barrel_plan)
 
     return barrel_plan
