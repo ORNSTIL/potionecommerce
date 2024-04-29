@@ -5,19 +5,25 @@ import ast
 
 router = APIRouter()
 
-
 def fetch_catalog_items(connection):
-    get_catalog_sql = "SELECT * FROM potion_catalog WHERE quantity > 0"
-    get_catalogs = connection.execute(sqlalchemy.text(get_catalog_sql)).fetchall()
+    # Query to fetch potion details along with their available quantities
+    get_catalog_sql = """
+    SELECT pc.sku, pc.name, pc.price, pc.potion_type, 
+           COALESCE(SUM(pl.change), 0) as quantity
+    FROM potion_catalog pc
+    LEFT JOIN potion_ledger pl ON pc.potion_type = pl.potion_type
+    GROUP BY pc.sku, pc.name, pc.price, pc.potion_type
+    HAVING COALESCE(SUM(pl.change), 0) > 0;
+    """
+    catalog_items = connection.execute(sqlalchemy.text(get_catalog_sql)).fetchall()
     catalog = []
-    for get_catalog in get_catalogs:
-        get_catalog = get_catalog._asdict()
+    for item in catalog_items:
         catalog.append({
-            "sku": get_catalog["sku"],
-            "name": get_catalog["name"],
-            "quantity": get_catalog["quantity"],
-            "price": get_catalog["price"],
-            "potion_type": ast.literal_eval(get_catalog["potion_type"]),
+            "sku": item["sku"],
+            "name": item["name"],
+            "quantity": item["quantity"],
+            "price": item["price"],
+            "potion_type": ast.literal_eval(item["potion_type"]),  # Convert string to list
         })
     return catalog
 
@@ -27,3 +33,4 @@ def get_catalog():
         catalog = fetch_catalog_items(connection)
     print(f"catalog: {catalog}")
     return catalog
+
