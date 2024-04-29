@@ -20,85 +20,95 @@ class Barrel(BaseModel):
 def strconvert(intlist):
     return str(intlist)
     
-def update_barrel_inventory(connection, barrel):
-    barrel_inventory_sql = """
-        UPDATE barrel_inventory SET potion_ml = potion_ml + :ml_increment
-        WHERE barrel_type = :barrel_type
-    """
-    connection.execute(
-        sqlalchemy.text(barrel_inventory_sql),
-        {"ml_increment": barrel.ml_per_barrel * barrel.quantity, "barrel_type": str(barrel.potion_type)}
-    )
-
-def update_global_inventory(connection, barrel):
-    global_inventory_sql = """
-        UPDATE global_inventory SET gold = gold - :price_decrement
-    """
-    connection.execute(
-        sqlalchemy.text(global_inventory_sql),
-        {"price_decrement": barrel.price * barrel.quantity}
-    )
-
 @router.post("/deliver/{order_id}")
 def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
-    print(f"barrels delivered: {barrels_delivered} order_id: {order_id}")
+    # Start a transaction for barrel delivery
+    create_transaction_sql = """
+        INSERT INTO transactions (type, created_at)
+        VALUES ('barrel_delivery', CURRENT_TIMESTAMP) RETURNING id;
+    """
+    
+    # Record the changes in the ml_ledger
+    ml_ledger_sql = """
+        INSERT INTO ml_ledger (transaction_id, barrel_type, change)
+        VALUES (:transaction_id, :barrel_type, :change);
+    """
+    
+    # Record the changes in the gold_ledger
+    gold_ledger_sql = """
+        INSERT INTO gold_ledger (transaction_id, change)
+        VALUES (:transaction_id, :change);
+    """
+    
     with db.engine.begin() as connection:
+        transaction_id = connection.execute(
+            sqlalchemy.text(create_transaction_sql)
+        ).fetchone()[0]
+        
         for barrel in barrels_delivered:
-            update_barrel_inventory(connection, barrel)
-            update_global_inventory(connection, barrel)
-    return "OK"
+            # Calculate the total ML for this type of barrel
+            total_ml = barrel.ml_per_barrel * barrel.quantity
+            connection.execute(
+                sqlalchemy.text(ml_ledger_sql),
+                {"transaction_id": transaction_id, "barrel_type": strconvert(barrel.potion_type), "change": total_ml}
+            )
+            
+            # Calculate the total cost for these barrels
+            total_cost = barrel.price * barrel.quantity
+            connection.execute(
+                sqlalchemy.text(gold_ledger_sql),
+                {"transaction_id": transaction_id, "change": -total_cost}
+            )
+            
+    return {"status": "success"}
 
-
-def get_available_capacity(connection):
-    result = connection.execute(sqlalchemy.text("""
-        SELECT (gp.ml_capacity * 10000) - COALESCE(SUM(bi.potion_ml), 0) AS available_capacity
-        FROM global_plan gp
-        LEFT JOIN barrel_inventory bi ON 1=1
-        GROUP BY gp.ml_capacity  -- Group by gp.ml_capacity
-    """))
-    available_capacity = result.fetchone()[0]
-    return available_capacity
-
-
-def fetch_global_inventory(connection):
-    result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-    return result.fetchone()._asdict()
-
-def fetch_and_sort_barrel_inventory(connection):
-    result = connection.execute(sqlalchemy.text("""
-        SELECT * FROM barrel_inventory ORDER BY potion_ml
-    """))
-    barrel_inventory = [row._asdict() for row in result.fetchall()]
-    return barrel_inventory
-
-def calculate_sort_key(barrel):
-    return barrel.ml_per_barrel / barrel.price
 
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
-    print(wholesale_catalog)
+    # Get the current gold balance from the ledger
+    gold_balance_sql = """
+        SELECT SUM(change) FROM gold_ledger;
+    """
+    
+    # Get the current ml capacity from the global plan
+    ml_capacity_sql = """
+        SELECT ml_capacity FROM global_plan;
+    """
+    
+    # Get the current inventory from the ml ledger for each type of barrel
+    barrel_inventory_sql = """
+        SELECT barrel_type, SUM(change) as total_ml FROM ml_ledger GROUP BY barrel_type;
+    """
+    
     with db.engine.begin() as connection:
+        gold_balance = connection.execute(sqlalchemy.text(gold_balance_sql)).scalar()
+        ml_capacity = connection.execute(sqlalchemy.text(ml_capacity_sql)).scalar() * 10000  # assuming ml_capacity is stored in 'units' of 10,000ml
         
-        global_inventory = fetch_global_inventory(connection)
-        gold_total = global_inventory["gold"]
-        available_ml = get_available_capacity(connection)
-        
-        
-        wholesale_catalog_sorted = sorted(wholesale_catalog, key=calculate_sort_key, reverse=True)
+        barrel_inventory = {
+            row['barrel_type']: row['total_ml']
+            for row in connection.execute(sqlalchemy.text(barrel_inventory_sql))
+        }
         
         barrel_plan = []
+        for barrel in wholesale_catalog:
+            barrel_type_str = strconvert(barrel.potion_type)
+            available_ml_for_type = ml_capacity - barrel_inventory.get(barrel_type_str, 0)
+            
+            max_barrels_by_ml = available_ml_for_type // barrel.ml_per_barrel
+            max_barrels_by_gold = gold_balance // barrel.price
+            max_barrels = min(barrel.quantity, max_barrels_by_ml, max_barrels_by_gold)
+            
+            if max_barrels > 0:
+                barrel_plan.append({
+                    "sku": barrel.sku,
+                    "quantity": max_barrels
+                })
+                
+                # Update the available ML and gold balance after planning to buy
+                available_ml_for_type -= max_barrels * barrel.ml_per_barrel
+                gold_balance -= max_barrels * barrel.price
+                
+                # Update the barrel_inventory dictionary
+                barrel_inventory[barrel_type_str] = barrel_inventory.get(barrel_type_str, 0) + max_barrels * barrel.ml_per_barrel
 
-        barrel_inventory = fetch_and_sort_barrel_inventory(connection)
-        filtered_barrel_inventory = [potion_type for potion_type in barrel_inventory if potion_type["potion_ml"] <= global_inventory["ml_threshold"]]
-        for potion_type in filtered_barrel_inventory:
-            for barrel in wholesale_catalog_sorted:
-                if barrel.ml_per_barrel > available_ml or barrel.price > gold_total:
-                    continue
-                if potion_type["barrel_type"] == strconvert(barrel.potion_type):
-                    barrel_plan.append({"sku": barrel.sku, "quantity": 1})
-                    
-                    available_ml -= barrel.ml_per_barrel
-                    gold_total -= barrel.price
-                    break
-        print(f"barrel purchase plan: {barrel_plan}, gold_total: {gold_total}")
-        return barrel_plan
+    return barrel_plan
