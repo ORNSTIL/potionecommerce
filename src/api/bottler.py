@@ -50,6 +50,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
         ).fetchone()[0]
 
         for potion in potions_delivered:
+            print("potion to be delivered:", potion)
             connection.execute(
                 sqlalchemy.text(potion_ledger_sql),
                 {
@@ -140,6 +141,7 @@ def get_bottle_plan():
                 })
 
                 available_potion_space -= quantity_to_produce
+    print(bottling_plan)
 
     return bottling_plan
 
