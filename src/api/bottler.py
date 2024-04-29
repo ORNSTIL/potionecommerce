@@ -103,22 +103,22 @@ def get_bottle_plan():
         ).fetchone()[0]
 
         potion_capacity = connection.execute(
-            text(potion_capacity_sql)
+            sqlalchemy.text(potion_capacity_sql)
         ).scalar()
 
         current_potion_inventory = {
             row['potion_type']: row['total_quantity']
-            for row in connection.execute(text(potion_inventory_sql))
+            for row in connection.execute(sqlalchemy.text(potion_inventory_sql))
         }
 
         ml_inventory = {
             row['barrel_type']: row['total_ml']
-            for row in connection.execute(text(ml_inventory_sql))
+            for row in connection.execute(sqlalchemy.text(ml_inventory_sql))
         }
 
         desired_potions = [
             ast.literal_eval(row['potion_type'])
-            for row in connection.execute(text(desired_potions_sql))
+            for row in connection.execute(sqlalchemy.text(desired_potions_sql))
         ]
 
         bottling_plan = []
