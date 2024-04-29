@@ -76,31 +76,50 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
 
 @router.post("/plan")
 def get_bottle_plan():
-    def fetch_desired_potions():
-        return [
-            [100, 0, 0, 0],   # Pure red potion
-            [0, 100, 0, 0],   # Pure green potion
-            [0, 0, 100, 0],   # Pure blue potion
-            [50, 50, 0, 0],   # 50% red, 50% green potion
-        ]
-
-    desired_potions = fetch_desired_potions()
+    transaction_sql = """
+        INSERT INTO transactions (type, created_at)
+        VALUES ('bottle_plan', CURRENT_TIMESTAMP) RETURNING id;
+    """
+    potion_capacity_sql = """
+        SELECT potion_capacity FROM global_plan;
+    """
+    potion_inventory_sql = """
+        SELECT potion_type, SUM(change) AS total_quantity
+        FROM potion_ledger
+        GROUP BY potion_type;
+    """
+    ml_inventory_sql = """
+        SELECT barrel_type, SUM(change) AS total_ml
+        FROM ml_ledger
+        GROUP BY barrel_type;
+    """
+    desired_potions_sql = """
+        SELECT potion_type FROM potion_catalog;
+    """
 
     with db.engine.begin() as connection:
         transaction_id = connection.execute(
-            text("INSERT INTO transactions (type, created_at) VALUES ('bottle_plan', CURRENT_TIMESTAMP) RETURNING id;")
+            text(transaction_sql)
         ).fetchone()[0]
 
-        potion_capacity = connection.execute(text("SELECT potion_capacity FROM global_plan;")).scalar()
+        potion_capacity = connection.execute(
+            text(potion_capacity_sql)
+        ).scalar()
+
         current_potion_inventory = {
             row['potion_type']: row['total_quantity']
-            for row in connection.execute(text("SELECT potion_type, SUM(change) as total_quantity FROM potion_ledger GROUP BY potion_type;"))
+            for row in connection.execute(text(potion_inventory_sql))
         }
 
         ml_inventory = {
             row['barrel_type']: row['total_ml']
-            for row in connection.execute(text("SELECT barrel_type, SUM(change) as total_ml FROM ml_ledger GROUP BY barrel_type;"))
+            for row in connection.execute(text(ml_inventory_sql))
         }
+
+        desired_potions = [
+            ast.literal_eval(row['potion_type'])
+            for row in connection.execute(text(desired_potions_sql))
+        ]
 
         bottling_plan = []
         available_potion_space = potion_capacity - sum(current_potion_inventory.values())
@@ -119,9 +138,11 @@ def get_bottle_plan():
                     "potion_type": potion_type,
                     "quantity": quantity_to_produce
                 })
+
                 available_potion_space -= quantity_to_produce
 
     return bottling_plan
+
 
 
 
