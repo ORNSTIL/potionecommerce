@@ -13,21 +13,43 @@ router = APIRouter(
 
 @router.get("/audit")
 def get_inventory():
-    """ """
+    """
+    Retrieve the total inventory of potions, the total milliliters of potion ingredients in barrels,
+    and the total gold, each calculated from ledger tables.
+    """
     with db.engine.begin() as connection:
-        total_inventory = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory")).fetchone()._asdict()
-        potion_inventory = connection.execute(sqlalchemy.text("SELECT SUM(quantity) FROM potion_catalog")).fetchone()[0]
-        barrel_inventory = connection.execute(sqlalchemy.text("SELECT SUM(potion_ml) FROM barrel_inventory")).fetchone()[0]
+        # Calculate total potions from the potion ledger
+        potion_inventory_query = sqlalchemy.text("""
+            SELECT COALESCE(SUM(change), 0) AS total_potions
+            FROM potion_ledger
+        """)
+        potion_inventory = connection.execute(potion_inventory_query).scalar()
 
-        print(f"number_of_potions: {potion_inventory} number_of_ml: {barrel_inventory} gold_count: {total_inventory['gold']}")
+        # Calculate total milliliters from the ml ledger
+        ml_inventory_query = sqlalchemy.text("""
+            SELECT COALESCE(SUM(change), 0) AS total_ml
+            FROM ml_ledger
+        """)
+        barrel_inventory = connection.execute(ml_inventory_query).scalar()
+
+        # Calculate total gold from the gold ledger
+        gold_inventory_query = sqlalchemy.text("""
+            SELECT COALESCE(SUM(change), 0) AS total_gold
+            FROM gold_ledger
+        """)
+        gold_total = connection.execute(gold_inventory_query).scalar()
+
+        # Output the totals for verification in development environments
+        print(f"number_of_potions: {potion_inventory}, number_of_ml: {barrel_inventory}, gold_count: {gold_total}")
 
         return [
-                {
-                    "number_of_potions": potion_inventory,
-                    "ml_in_barrels": barrel_inventory,
-                    "gold": total_inventory["gold"]
-                }
-            ]
+            {
+                "number_of_potions": potion_inventory,
+                "ml_in_barrels": barrel_inventory,
+                "gold": gold_total
+            }
+        ]
+
 
 # Gets called once a day
 @router.post("/plan")
