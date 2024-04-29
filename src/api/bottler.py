@@ -116,9 +116,9 @@ def get_bottle_plan():
             for row in connection.execute(sqlalchemy.text(ml_inventory_sql))
         }
 
+        dp = connection.execute(sqlalchemy.text(desired_potions_sql))
         desired_potions = [
-            ast.literal_eval(row['potion_type'])
-            for row in connection.execute(sqlalchemy.text(desired_potions_sql))
+            ast.literal_eval(row['potion_type']) for row in dp.mappings()
         ]
 
         bottling_plan = []
