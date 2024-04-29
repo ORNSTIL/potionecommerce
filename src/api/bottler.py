@@ -99,7 +99,7 @@ def get_bottle_plan():
 
     with db.engine.begin() as connection:
         transaction_id = connection.execute(
-            text(transaction_sql)
+            sqlalchemy.text(transaction_sql)
         ).fetchone()[0]
 
         potion_capacity = connection.execute(
