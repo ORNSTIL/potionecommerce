@@ -112,9 +112,10 @@ def get_bottle_plan():
             for row in connection.execute(sqlalchemy.text(potion_inventory_sql))
         }
 
+        ml_results = connection.execute(sqlalchemy.text(ml_inventory_sql)).mappings()
         ml_inventory = {
             row['barrel_type']: row['total_ml']
-            for row in connection.execute(sqlalchemy.text(ml_inventory_sql))
+            for row in ml_results
         }
 
         dp = connection.execute(sqlalchemy.text(desired_potions_sql))
@@ -128,10 +129,11 @@ def get_bottle_plan():
         for potion_type in desired_potions:
             potion_type_str = strconvert(potion_type)
             can_produce = min(
-                (ml_inventory.get(strconvert([1 if i == index else 0 for index in range(4)]), 0) // amount)
+                (ml_inventory.get(strconvert([1 if j == index else 0 for j in range(4)]), 0) // amount)
                 for index, amount in enumerate(potion_type)
                 if amount > 0
             )
+
 
             quantity_to_produce = min(can_produce, available_potion_space)
             if quantity_to_produce > 0:
