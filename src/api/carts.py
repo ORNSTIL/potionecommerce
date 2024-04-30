@@ -164,7 +164,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
 
         cart_items = connection.execute(
             sqlalchemy.text(cart_items_sql), {"cart_id": cart_id}
-        ).fetchall()
+        ).mappings().all()
 
         total_gold = 0
         for item in cart_items:
@@ -175,7 +175,6 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             total_cost = item['quantity'] * price
             total_gold += total_cost
 
-            # Update the potion ledger with the actual potion type
             connection.execute(
                 sqlalchemy.text(potion_ledger_update_sql), 
                 {
@@ -185,7 +184,6 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 }
             )
 
-            # Update the gold ledger
             connection.execute(
                 sqlalchemy.text(gold_ledger_update_sql),
                 {
@@ -194,7 +192,6 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 }
             )
 
-        # Clear the cart items after checkout
         connection.execute(
             sqlalchemy.text(delete_cart_items_sql), {"cart_id": cart_id}
         )
