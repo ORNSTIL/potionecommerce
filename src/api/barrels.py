@@ -86,13 +86,16 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         gold_balance = connection.execute(sqlalchemy.text(gold_balance_sql)).scalar()
         ml_capacity = connection.execute(sqlalchemy.text(ml_capacity_sql)).scalar()
         
+        barrel_inventory_results = connection.execute(sqlalchemy.text(barrel_inventory_sql)).mappings()
         barrel_inventory = {
             row['barrel_type']: row['total_ml']
-            for row in connection.execute(sqlalchemy.text(barrel_inventory_sql))
+            for row in barrel_inventory_results
         }
         
         barrel_plan = []
         for barrel in wholesale_catalog:
+            if barrel.ml_per_barrel <= 0:
+                continue
             barrel_type_str = strconvert(barrel.potion_type)
             available_ml_for_type = ml_capacity - barrel_inventory.get(barrel_type_str, 0)
             
