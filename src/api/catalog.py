@@ -15,7 +15,8 @@ def fetch_catalog_items(connection):
     GROUP BY pc.sku, pc.name, pc.price, pc.potion_type
     HAVING COALESCE(SUM(pl.change), 0) > 0;
     """
-    catalog_items = connection.execute(sqlalchemy.text(get_catalog_sql)).fetchall()
+    # Execute the query and fetch results as mappings (dictionaries)
+    catalog_items = connection.execute(sqlalchemy.text(get_catalog_sql)).mappings().all()
     catalog = []
     for item in catalog_items:
         catalog.append({
@@ -33,4 +34,3 @@ def get_catalog():
         catalog = fetch_catalog_items(connection)
     print(f"catalog: {catalog}")
     return catalog
-
