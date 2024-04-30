@@ -84,7 +84,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     
     with db.engine.begin() as connection:
         gold_balance = connection.execute(sqlalchemy.text(gold_balance_sql)).scalar()
-        ml_capacity = connection.execute(sqlalchemy.text(ml_capacity_sql)).scalar() * 10000  # assuming ml_capacity is stored in 'units' of 10,000ml
+        ml_capacity = connection.execute(sqlalchemy.text(ml_capacity_sql)).scalar()
         
         barrel_inventory = {
             row['barrel_type']: row['total_ml']
