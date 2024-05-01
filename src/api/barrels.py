@@ -54,6 +54,9 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
                 sqlalchemy.text(ml_ledger_sql),
                 {"transaction_id": transaction_id, "barrel_type": strconvert(barrel.potion_type), "change": total_ml}
             )
+            print("ml transaction_id:", transaction_id)
+            print("barrel_type:", strconvert(barrel.potion_type)) 
+            print("ml change:", total_ml)
             
             # Calculate the total cost for these barrels
             total_cost = barrel.price * barrel.quantity
@@ -61,6 +64,8 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
                 sqlalchemy.text(gold_ledger_sql),
                 {"transaction_id": transaction_id, "change": -total_cost}
             )
+            print("gold transaction_id:", transaction_id)
+            print("gold change:", -total_cost)
             
     return {"status": "success"}
 
