@@ -126,6 +126,8 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
             "quantity": cart_item.quantity,
             "added_at": datetime.now()
         })
+
+    print("setting item quantity:", cart_item.quantity, "on cart id:", cart_id, "for item:", item_sku)
         
     return {"status": "success"}
 
@@ -169,11 +171,16 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
 
         total_gold = 0
         for item in cart_items:
+            print("total gold:", total_gold)
             price, potion_type = connection.execute(
                 sqlalchemy.text(potion_price_and_type_sql), {"sku": item['item_sku']}
             ).fetchone()
 
+            print("price:", price)
+            print("potion_type:", potion_type)
+
             total_cost = item['quantity'] * price
+            print("total cost:", total_cost)
             total_gold += total_cost
 
             connection.execute(
@@ -184,7 +191,11 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                     "change": -item['quantity']
                 }
             )
-
+            print("potion ledger update")
+            print("transaction_id:", transaction_id)
+            print("potion_type:", potion_type)
+            print("change:", -item['quantity'])
+            
             connection.execute(
                 sqlalchemy.text(gold_ledger_update_sql),
                 {
@@ -192,9 +203,16 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                     "change": total_cost
                 }
             )
+            print("gold ledger update")
+            print("transaction_id:", transaction_id)
+            print("change:", total_cost)
+        
+        print("total gold:", total_gold)
 
         connection.execute(
             sqlalchemy.text(delete_cart_items_sql), {"cart_id": cart_id}
         )
-
+        print("deleting cart item:", cart_id)
+        
+    print("total_potions_bought:", sum(item['quantity'] for item in cart_items), "total_gold_paid:", total_gold)
     return {"total_potions_bought": sum(item['quantity'] for item in cart_items), "total_gold_paid": total_gold}
