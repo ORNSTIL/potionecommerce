@@ -101,6 +101,7 @@ def create_cart(new_cart: Customer):
             "level": new_cart.level,
             "created_at": datetime.now()
         }).fetchone()[0]
+    print("cart id:", cart_id)
     
     return {"cart_id": cart_id}
 
@@ -125,7 +126,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
             "quantity": cart_item.quantity,
             "added_at": datetime.now()
         })
-    
+        
     return {"status": "success"}
 
 
