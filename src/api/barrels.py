@@ -72,7 +72,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
 
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
-    # Get the current gold balance from the ledger
+    print(wholesale_catalog)
     gold_balance_sql = """
         SELECT SUM(change) FROM gold_ledger;
     """
