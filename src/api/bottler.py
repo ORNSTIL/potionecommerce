@@ -31,6 +31,7 @@ class PotionInventory(BaseModel):
 
 @router.post("/deliver/{order_id}")
 def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int):
+    print("potions delivered:", potions_delivered)
     transaction_sql = """
         INSERT INTO transactions (type, created_at)
         VALUES ('potion_delivery', CURRENT_TIMESTAMP) RETURNING id;
