@@ -64,6 +64,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory], order_id: int
             # Deduct the ml used from the ml ledger for each ingredient type
             for color_index, ml in enumerate(potion.potion_type):
                 if ml > 0:
+                    print("ml:", ml)
                     connection.execute(
                         sqlalchemy.text(ml_ledger_sql),
                         {
