@@ -156,9 +156,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         INSERT INTO gold_ledger (transaction_id, change)
         VALUES (:transaction_id, :change)
     """
-    delete_cart_items_sql = """
-        DELETE FROM cart_inventory WHERE cart_id = :cart_id
-    """
+
     
     with db.engine.begin() as connection:
         transaction_id = connection.execute(
@@ -209,10 +207,6 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         
         print("total gold:", total_gold)
 
-        connection.execute(
-            sqlalchemy.text(delete_cart_items_sql), {"cart_id": cart_id}
-        )
-        print("deleting cart item:", cart_id)
         
     print("total_potions_bought:", sum(item['quantity'] for item in cart_items), "total_gold_paid:", total_gold)
     return {"total_potions_bought": sum(item['quantity'] for item in cart_items), "total_gold_paid": total_gold}
