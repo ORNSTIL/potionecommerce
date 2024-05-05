@@ -5,6 +5,10 @@ from enum import Enum
 import sqlalchemy
 from src import database as db
 from datetime import datetime
+from fastapi import HTTPException, Query
+from sqlalchemy import select, text, desc, asc
+from sqlalchemy.sql import func
+
 
 cart_id_tracker = 0
 
@@ -17,59 +21,57 @@ router = APIRouter(
 class search_sort_options(str, Enum):
     customer_name = "customer_name"
     item_sku = "item_sku"
-    line_item_total = "line_item_total"
-    timestamp = "timestamp"
+    line_item_total = "quantity"
+    timestamp = "created_at"
 
 class search_sort_order(str, Enum):
     asc = "asc"
     desc = "desc"   
 
+
 @router.get("/search/", tags=["search"])
-def search_orders(
-    customer_name: str = "",
-    potion_sku: str = "",
-    search_page: str = "",
+async def search_orders(
+    request: Request,
+    customer_name: str = Query(None),
+    potion_sku: str = Query(None),
+    search_page: int = 1,
     sort_col: search_sort_options = search_sort_options.timestamp,
     sort_order: search_sort_order = search_sort_order.desc,
+    limit: int = 5
 ):
-    """
-    Search for cart line items by customer name and/or potion sku.
 
-    Customer name and potion sku filter to orders that contain the 
-    string (case insensitive). If the filters aren't provided, no
-    filtering occurs on the respective search term.
+    offset = (search_page - 1) * limit
+    params = {"limit": limit, "offset": offset}
 
-    Search page is a cursor for pagination. The response to this
-    search endpoint will return previous or next if there is a
-    previous or next page of results available. The token passed
-    in that search response can be passed in the next search request
-    as search page to get that page of results.
-
-    Sort col is which column to sort by and sort order is the direction
-    of the search. They default to searching by timestamp of the order
-    in descending order.
-
-    The response itself contains a previous and next page token (if
-    such pages exist) and the results as an array of line items. Each
-    line item contains the line item id (must be unique), item sku, 
-    customer name, line item total (in gold), and timestamp of the order.
-    Your results must be paginated, the max results you can return at any
-    time is 5 total line items.
+    base_query = """
+        SELECT c.id AS cart_id, c.customer_name, ci.item_sku, ci.quantity AS line_item_total, 
+               c.created_at AS timestamp
+        FROM carts c
+        JOIN cart_inventory ci ON c.id = ci.cart_id
+        WHERE 1=1
     """
 
-    return {
-        "previous": "",
-        "next": "",
-        "results": [
-            {
-                "line_item_id": 1,
-                "item_sku": "1 oblivion potion",
-                "customer_name": "Scaramouche",
-                "line_item_total": 50,
-                "timestamp": "2021-01-01T00:00:00Z",
+    if customer_name:
+        base_query += " AND c.customer_name ILIKE :customer_name"
+        params['customer_name'] = f"%{customer_name}%"
+    if potion_sku:
+        base_query += " AND ci.item_sku ILIKE :potion_sku"
+        params['potion_sku'] = f"%{potion_sku}%"
+
+    order_clause = f" ORDER BY c.{sort_col} {sort_order.value} LIMIT :limit OFFSET :offset"
+    final_query = base_query + order_clause
+
+    try:
+        with db.engine.begin() as connection:
+            result = connection.execute(text(final_query), params).mappings().all()
+            data = [dict(row) for row in result]
+            return {
+                "previous": search_page - 1 if search_page > 1 else None,
+                "next": search_page + 1 if len(data) == limit else None,
+                "results": data
             }
-        ],
-    }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 class Customer(BaseModel):
