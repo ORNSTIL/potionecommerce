@@ -32,24 +32,23 @@ class search_sort_order(str, Enum):
 @router.get("/search/", tags=["search"])
 async def search_orders(
     request: Request,
-    customer_name: str = Query(None),
-    potion_sku: str = Query(None),
-    search_page: int = 1,
-    sort_col: str = Query(default="created_at"),
+    customer_name: str = Query(default=None),
+    potion_sku: str = Query(default=None),
+    search_page: int = Query(default=1),
+    sort_col: search_sort_options = Query(default=search_sort_options.timestamp),
     sort_order: search_sort_order = Query(default=search_sort_order.desc),
-    limit: int = 5
-
+    limit: int = Query(default=5)
 ):
-    if sort_col not in search_sort_options._value2member_map_:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"Invalid sort column. Allowed values are {list(search_sort_options._value2member_map_.keys())}"
-        )
-
     offset = (search_page - 1) * limit
     params = {"limit": limit, "offset": offset}
+    column_mapping = {
+        "customer_name": "c.customer_name",
+        "item_sku": "ci.item_sku",
+        "quantity": "ci.quantity",
+        "timestamp": "c.created_at"
+    }
 
-    base_query = """
+    base_query = f"""
         SELECT c.id AS cart_id, c.customer_name, ci.item_sku, ci.quantity AS line_item_total, 
                c.created_at AS timestamp
         FROM carts c
@@ -64,7 +63,7 @@ async def search_orders(
         base_query += " AND ci.item_sku ILIKE :potion_sku"
         params['potion_sku'] = f"%{potion_sku}%"
 
-    order_clause = f" ORDER BY c.{sort_col} {sort_order.value} LIMIT :limit OFFSET :offset"
+    order_clause = f" ORDER BY {column_mapping[sort_col]} {sort_order.value} LIMIT :limit OFFSET :offset"
     final_query = base_query + order_clause
 
     try:
@@ -78,7 +77,6 @@ async def search_orders(
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 class Customer(BaseModel):
     customer_name: str
