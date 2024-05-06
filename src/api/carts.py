@@ -21,8 +21,8 @@ router = APIRouter(
 class search_sort_options(str, Enum):
     customer_name = "customer_name"
     item_sku = "item_sku"
-    quantity = "quantity"
-    created_at = "created_at"
+    line_item_total = "quantity"
+    timestamp = "timestamp"
 
 class search_sort_order(str, Enum):
     asc = "asc"
@@ -35,10 +35,16 @@ async def search_orders(
     customer_name: str = Query(None),
     potion_sku: str = Query(None),
     search_page: int = 1,
-    sort_col: search_sort_options = search_sort_options.timestamp,
-    sort_order: search_sort_order = search_sort_order.desc,
+    sort_col: str = Query(default="created_at"),
+    sort_order: search_sort_order = Query(default=search_sort_order.desc),
     limit: int = 5
+
 ):
+    if sort_col not in search_sort_options._value2member_map_:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Invalid sort column. Allowed values are {list(search_sort_options._value2member_map_.keys())}"
+        )
 
     offset = (search_page - 1) * limit
     params = {"limit": limit, "offset": offset}
