@@ -116,7 +116,7 @@ class CartItem(BaseModel):
     quantity: int
 
 
-@router.put("/{cart_id}/items/{item_sku}")
+@router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     add_item_sql = """
         INSERT INTO cart_inventory (cart_id, item_sku, quantity, added_at)
