@@ -71,55 +71,54 @@ def post_deliver_barrels(barrels_delivered: list[Barrel], order_id: int):
     return {"status": "success"}
 
 
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+from src.api import auth
+import sqlalchemy
+from src import database as db
+
+router = APIRouter(
+    prefix="/barrels",
+    tags=["barrels"],
+    dependencies=[Depends(auth.get_api_key)],
+)
+
+class Barrel(BaseModel):
+    sku: str
+    ml_per_barrel: int
+    potion_type: list[int]
+    price: int
+    quantity: int
+
+def strconvert(intlist):
+    return str(intlist)
+
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
-    print(wholesale_catalog)
     gold_balance_sql = """
         SELECT SUM(change) FROM gold_ledger;
     """
-
     ml_capacity_sql = """
         SELECT ml_capacity FROM global_plan;
     """
-
-    potion_quantity_sql = """
-        SELECT potion_type, COALESCE(SUM(change), 0) AS total_quantity
-        FROM potion_ledger
-        GROUP BY potion_type;
-    """
-
-    barrel_inventory_sql = """
-        SELECT barrel_type, SUM(change) as total_ml FROM ml_ledger GROUP BY barrel_type;
+    total_ml_used_sql = """
+        SELECT COALESCE(SUM(change), 0) FROM ml_ledger;
     """
 
     with db.engine.begin() as connection:
         gold_balance = connection.execute(sqlalchemy.text(gold_balance_sql)).scalar()
         ml_capacity = connection.execute(sqlalchemy.text(ml_capacity_sql)).scalar()
+        total_ml_used = connection.execute(sqlalchemy.text(total_ml_used_sql)).scalar()
 
-        potion_quantities = connection.execute(sqlalchemy.text(potion_quantity_sql)).mappings().fetchall()
-        potion_inventory = {row['potion_type']: row['total_quantity'] for row in potion_quantities}
-
-        barrel_inventory_results = connection.execute(sqlalchemy.text(barrel_inventory_sql)).mappings().fetchall()
-        barrel_inventory = {row['barrel_type']: row['total_ml'] for row in barrel_inventory_results}
-
-        barrels_by_efficiency = [
-            {
-                "barrel": barrel,
-                "efficiency": barrel.ml_per_barrel / barrel.price,
-                "shortage": ml_capacity - potion_inventory.get(str(barrel.potion_type), 0),
-                "available_ml": ml_capacity - barrel_inventory.get(str(barrel.potion_type), 0)
-            }
-            for barrel in wholesale_catalog if barrel.ml_per_barrel > 0
-        ]
-
-        # Sort barrels by efficiency and shortage (higher efficiency and more shortage first)
-        barrels_by_efficiency.sort(key=lambda x: (-x['efficiency'], -x['shortage']))
+        available_ml = ml_capacity - total_ml_used
 
         barrel_plan = []
-        for barrel_info in barrels_by_efficiency:
-            barrel = barrel_info['barrel']
+        for barrel in sorted(wholesale_catalog, key=lambda x: (x.ml_per_barrel / x.price), reverse=True):
+            print("available ml:", available_ml)
+            if barrel.ml_per_barrel <= 0:
+                continue
 
-            max_possible_by_ml = barrel_info['available_ml'] // barrel.ml_per_barrel
+            max_possible_by_ml = available_ml // barrel.ml_per_barrel
             max_possible_by_gold = gold_balance // barrel.price
             purchase_quantity = min(barrel.quantity, max_possible_by_ml, max_possible_by_gold)
 
@@ -132,8 +131,13 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 gold_spent = purchase_quantity * barrel.price
                 gold_balance -= gold_spent
 
-                if gold_balance < 0:
+                ml_added = purchase_quantity * barrel.ml_per_barrel
+                available_ml -= ml_added
+
+                if available_ml <= 0 or gold_balance <= 0:
                     break
 
-    print(barrel_plan)
-    return barrel_plan
+        print(barrel_plan)
+        return barrel_plan
+
+    return {"status": "success"}
