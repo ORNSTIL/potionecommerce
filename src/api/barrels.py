@@ -116,6 +116,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                     break
 
         print(barrel_plan)
-        return barrel_plan
+        return []
 
     return {"status": "success"}
